@@ -3,3 +3,7 @@
 *.db
 venv/
 .env
+
+# 2FA QR codes (sensitive)
+2FA_QRCodes/
+*.png

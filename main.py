@@ -24,6 +24,7 @@ from modules.procedures import show_procedures_menu
 from modules.views import show_views_menu
 from modules.functions import show_functions_menu
 from modules.user_management import show_user_management_menu, register_new_user
+from modules.two_factor_auth import show_2fa_menu, verify_2fa_login
 from config import Config
 
 
@@ -114,13 +115,16 @@ def show_main_menu(is_admin=False):
         print(f"\n{Fore.MAGENTA}Administration:{Style.RESET_ALL}")
         print(" 11. User Management - Registration & Approvals")
     
+    print(f"\n{Fore.MAGENTA}User Settings:{Style.RESET_ALL}")
+    print(" 12. Two-Factor Authentication (2FA)")
+    
     print(f"\n{Fore.YELLOW}System:{Style.RESET_ALL}")
     if is_admin:
-        print(" 12. Test Database Connection")
-        print(" 13. Change User Role")
+        print(" 13. Test Database Connection")
+        print(" 14. Change User Role")
     else:
-        print(" 11. Test Database Connection")
-        print(" 12. Change User Role")
+        print(" 13. Test Database Connection")
+        print(" 14. Change User Role")
     print("  0. Exit Application")
     
     print(f"\n{Fore.CYAN}{'─'*80}{Style.RESET_ALL}")
@@ -159,6 +163,13 @@ def main():
     # Check if user is admin (dbo or atelier_admin)
     is_admin = username.lower() in ['atelier_admin', 'sa'] or current_role == 'admin'
     
+    # Verify 2FA if enabled
+    if not verify_2fa_login(db, username):
+        print(f"\n{Fore.RED}2FA verification failed. Access denied.{Style.RESET_ALL}")
+        db.disconnect()
+        input(f"\n{Fore.YELLOW}Press Enter to exit...{Style.RESET_ALL}")
+        return
+    
     # Main menu loop
     while True:
         show_main_menu(is_admin)
@@ -188,7 +199,9 @@ def main():
                 show_functions_menu(db)
             elif choice == '11' and is_admin:
                 show_user_management_menu(db, username, is_admin)
-            elif choice == '11' and not is_admin:
+            elif choice == '12':
+                show_2fa_menu(db, username)
+            elif choice == '13' and not is_admin:
                 # Test current connection
                 print(f"\n{Fore.CYAN}Testing database connection...{Style.RESET_ALL}")
                 try:
@@ -208,7 +221,7 @@ def main():
                         print(f"{Fore.GREEN}✓ Reconnected successfully!{Style.RESET_ALL}")
                     else:
                         print(f"{Fore.RED}✗ Reconnection failed{Style.RESET_ALL}")
-            elif choice == '12' and is_admin:
+            elif choice == '13' and is_admin:
                 # Test connection for admin
                 print(f"\n{Fore.CYAN}Testing database connection...{Style.RESET_ALL}")
                 try:
@@ -228,7 +241,7 @@ def main():
                         print(f"{Fore.GREEN}✓ Reconnected successfully!{Style.RESET_ALL}")
                     else:
                         print(f"{Fore.RED}✗ Reconnection failed{Style.RESET_ALL}")
-            elif choice == '12' and not is_admin:
+            elif choice == '14' and not is_admin:
                 # Change user/role for non-admin
                 print(f"\n{Fore.CYAN}{'='*80}")
                 print("CHANGE USER - Login with different credentials")
@@ -252,7 +265,7 @@ def main():
                     if not db.connect():
                         print(f"{Fore.RED}Critical error: Cannot reconnect to database!{Style.RESET_ALL}")
                         break
-            elif choice == '13' and is_admin:
+            elif choice == '14' and is_admin:
                 # Change user/role for admin
                 print(f"\n{Fore.CYAN}{'='*80}")
                 print("CHANGE USER - Login with different credentials")
