@@ -1,36 +1,5 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
+﻿__pycache__/
+*.pyc
+*.db
 venv/
-ENV/
-env/
-*.egg-info/
-dist/
-build/
-
-# Environment variables
 .env
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Logs
-*.log
-
-# Database
-*.bak
-*.trn
-*.sqlaudit
-*.xel
