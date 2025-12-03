@@ -1,0 +1,3574 @@
+USE [master]
+GO
+/****** Object:  Database [Atelier]    Script Date: 11/14/2025 9:07:45 PM ******/
+CREATE DATABASE [Atelier]
+ CONTAINMENT = NONE
+ ON  PRIMARY 
+( NAME = N'Atelier', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL17.MSSQLSERVER\MSSQL\DATA\Atelier.mdf' , SIZE = 8192KB , MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB )
+ LOG ON 
+( NAME = N'Atelier_log', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL17.MSSQLSERVER\MSSQL\DATA\Atelier_log.ldf' , SIZE = 8192KB , MAXSIZE = 2048GB , FILEGROWTH = 65536KB )
+ WITH CATALOG_COLLATION = DATABASE_DEFAULT, LEDGER = OFF
+GO
+ALTER DATABASE [Atelier] SET COMPATIBILITY_LEVEL = 160
+GO
+IF (1 = FULLTEXTSERVICEPROPERTY('IsFullTextInstalled'))
+begin
+EXEC [Atelier].[dbo].[sp_fulltext_database] @action = 'enable'
+end
+GO
+ALTER DATABASE [Atelier] SET ANSI_NULL_DEFAULT OFF 
+GO
+ALTER DATABASE [Atelier] SET ANSI_NULLS OFF 
+GO
+ALTER DATABASE [Atelier] SET ANSI_PADDING OFF 
+GO
+ALTER DATABASE [Atelier] SET ANSI_WARNINGS OFF 
+GO
+ALTER DATABASE [Atelier] SET ARITHABORT OFF 
+GO
+ALTER DATABASE [Atelier] SET AUTO_CLOSE OFF 
+GO
+ALTER DATABASE [Atelier] SET AUTO_SHRINK OFF 
+GO
+ALTER DATABASE [Atelier] SET AUTO_UPDATE_STATISTICS ON 
+GO
+ALTER DATABASE [Atelier] SET CURSOR_CLOSE_ON_COMMIT OFF 
+GO
+ALTER DATABASE [Atelier] SET CURSOR_DEFAULT  GLOBAL 
+GO
+ALTER DATABASE [Atelier] SET CONCAT_NULL_YIELDS_NULL OFF 
+GO
+ALTER DATABASE [Atelier] SET NUMERIC_ROUNDABORT OFF 
+GO
+ALTER DATABASE [Atelier] SET QUOTED_IDENTIFIER OFF 
+GO
+ALTER DATABASE [Atelier] SET RECURSIVE_TRIGGERS OFF 
+GO
+ALTER DATABASE [Atelier] SET  ENABLE_BROKER 
+GO
+ALTER DATABASE [Atelier] SET AUTO_UPDATE_STATISTICS_ASYNC OFF 
+GO
+ALTER DATABASE [Atelier] SET DATE_CORRELATION_OPTIMIZATION OFF 
+GO
+ALTER DATABASE [Atelier] SET TRUSTWORTHY OFF 
+GO
+ALTER DATABASE [Atelier] SET ALLOW_SNAPSHOT_ISOLATION OFF 
+GO
+ALTER DATABASE [Atelier] SET PARAMETERIZATION SIMPLE 
+GO
+ALTER DATABASE [Atelier] SET READ_COMMITTED_SNAPSHOT OFF 
+GO
+ALTER DATABASE [Atelier] SET HONOR_BROKER_PRIORITY OFF 
+GO
+ALTER DATABASE [Atelier] SET RECOVERY FULL 
+GO
+ALTER DATABASE [Atelier] SET  MULTI_USER 
+GO
+ALTER DATABASE [Atelier] SET PAGE_VERIFY CHECKSUM  
+GO
+ALTER DATABASE [Atelier] SET DB_CHAINING OFF 
+GO
+ALTER DATABASE [Atelier] SET FILESTREAM( NON_TRANSACTED_ACCESS = OFF ) 
+GO
+ALTER DATABASE [Atelier] SET TARGET_RECOVERY_TIME = 60 SECONDS 
+GO
+ALTER DATABASE [Atelier] SET DELAYED_DURABILITY = DISABLED 
+GO
+ALTER DATABASE [Atelier] SET ACCELERATED_DATABASE_RECOVERY = OFF  
+GO
+EXEC sys.sp_db_vardecimal_storage_format N'Atelier', N'ON'
+GO
+ALTER DATABASE [Atelier] SET QUERY_STORE = ON
+GO
+ALTER DATABASE [Atelier] SET QUERY_STORE (OPERATION_MODE = READ_WRITE, CLEANUP_POLICY = (STALE_QUERY_THRESHOLD_DAYS = 30), DATA_FLUSH_INTERVAL_SECONDS = 900, INTERVAL_LENGTH_MINUTES = 60, MAX_STORAGE_SIZE_MB = 1000, QUERY_CAPTURE_MODE = AUTO, SIZE_BASED_CLEANUP_MODE = AUTO, MAX_PLANS_PER_QUERY = 200, WAIT_STATS_CAPTURE_MODE = ON)
+GO
+USE [Atelier]
+GO
+/****** ПОЛЬЗОВАТЕЛИ ДЛЯ КУРСОВОГО ПРОЕКТА ******/
+
+-- 1. Администратор БД (полные права)
+CREATE USER [atelier_admin] FOR LOGIN [atelier_admin] WITH DEFAULT_SCHEMA=[dbo]
+GO
+ALTER ROLE [db_owner] ADD MEMBER [atelier_admin]
+GO
+
+-- 2. Менеджер (чтение и изменение данных)
+CREATE USER [manager] FOR LOGIN [manager] WITH DEFAULT_SCHEMA=[dbo]
+GO
+ALTER ROLE [db_datareader] ADD MEMBER [manager]
+GO
+ALTER ROLE [db_datawriter] ADD MEMBER [manager]
+GO
+
+-- 3. Закройщик (чтение всех данных + изменение своих заказов)
+CREATE USER [tailor_user] FOR LOGIN [tailor_user] WITH DEFAULT_SCHEMA=[dbo]
+GO
+ALTER ROLE [db_datareader] ADD MEMBER [tailor_user]
+GO
+-- Права на изменение таблиц Orders, OrderCosts, OrderComplications, OrderFabrics
+GRANT INSERT, UPDATE, DELETE ON [dbo].[Orders] TO [tailor_user]
+GO
+GRANT INSERT, UPDATE, DELETE ON [dbo].[OrderCosts] TO [tailor_user]
+GO
+GRANT INSERT, UPDATE, DELETE ON [dbo].[OrderComplications] TO [tailor_user]
+GO
+GRANT INSERT, UPDATE, DELETE ON [dbo].[OrderFabrics] TO [tailor_user]
+GO
+
+-- 4. Кассир (чтение данных + работа с кассой)
+CREATE USER [cashier] FOR LOGIN [cashier] WITH DEFAULT_SCHEMA=[dbo]
+GO
+ALTER ROLE [db_datareader] ADD MEMBER [cashier]
+GO
+-- Права на работу с кассой
+GRANT INSERT, UPDATE, DELETE ON [dbo].[CashRegister] TO [cashier]
+GO
+/****** Object:  Table [dbo].[Categories]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Categories](
+	[CategoryID] [int] NOT NULL,
+	[CategoryName] [nvarchar](255) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[CategoryID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Tailors]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Tailors](
+	[TailorID] [int] NOT NULL,
+	[FullName] [nvarchar](255) NOT NULL,
+	[CategoryID] [int] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[TailorID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Customers]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Customers](
+	[CustomerID] [int] NOT NULL,
+	[CustomerName] [nvarchar](255) NOT NULL,
+	[Phone] [nvarchar](50) NOT NULL,
+	[Address] [nvarchar](255) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[CustomerID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[OrderStatuses]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[OrderStatuses](
+	[StatusID] [int] NOT NULL,
+	[StatusName] [nvarchar](50) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[StatusID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Products]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Products](
+	[ProductID] [int] NOT NULL,
+	[ProductName] [nvarchar](255) NOT NULL,
+	[BasePrice] [decimal](10, 2) NOT NULL,
+	[CategoryID] [int] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[ProductID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Orders]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Orders](
+	[OrderID] [int] NOT NULL,
+	[OrderDate] [date] NOT NULL,
+	[TailorID] [int] NULL,
+	[ProductID] [int] NULL,
+	[CustomerID] [int] NULL,
+	[CompletionDate] [date] NULL,
+	[UrgencyPercentage] [decimal](5, 2) NOT NULL,
+	[Language] [nvarchar](50) NOT NULL,
+	[StatusID] [int] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[OrderID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[CashRegister]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[CashRegister](
+	[OrderID] [int] NOT NULL,
+	[PaymentDate] [date] NOT NULL,
+	[Amount] [decimal](10, 2) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[OrderID] ASC,
+	[PaymentDate] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[OrderCosts]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[OrderCosts](
+	[OrderID] [int] NOT NULL,
+	[BaseCost] [decimal](10, 2) NOT NULL,
+	[ComplicationCost] [decimal](10, 2) NOT NULL,
+	[FabricCost] [decimal](10, 2) NOT NULL,
+	[UrgencyCost] [decimal](10, 2) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[OrderID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Complications]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Complications](
+	[ComplicationID] [int] NOT NULL,
+	[ComplicationName] [nvarchar](255) NOT NULL,
+	[PricePerElement] [decimal](10, 2) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[ComplicationID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[FabricTypes]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[FabricTypes](
+	[FabricTypeID] [int] NOT NULL,
+	[FabricTypeName] [nvarchar](255) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[FabricTypeID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Fabrics]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Fabrics](
+	[FabricID] [nvarchar](50) NOT NULL,
+	[FabricName] [nvarchar](255) NOT NULL,
+	[Unit] [nvarchar](50) NOT NULL,
+	[Price] [decimal](10, 2) NOT NULL,
+	[FabricTypeID] [int] NOT NULL,
+	[Quantity] [int] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[FabricID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[OrderComplications]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[OrderComplications](
+	[OrderID] [int] NOT NULL,
+	[ComplicationID] [int] NOT NULL,
+	[ElementCount] [int] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[OrderID] ASC,
+	[ComplicationID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[OrderFabrics]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[OrderFabrics](
+	[OrderID] [int] NOT NULL,
+	[FabricID] [nvarchar](50) NOT NULL,
+	[FabricQuantity] [int] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[OrderID] ASC,
+	[FabricID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[OrderLogs]    Script Date: 11/14/2025 9:07:46 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[OrderLogs](
+	[LogID] [int] IDENTITY(1,1) NOT NULL,
+	[OrderID] [int] NULL,
+	[OperationType] [nvarchar](50) NULL,
+	[OperationDate] [datetime] NULL,
+	[UserName] [nvarchar](255) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[LogID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Index [IX_CashRegister_PaymentDate]    Script Date: 11/14/2025 9:07:46 PM ******/
+CREATE NONCLUSTERED INDEX [IX_CashRegister_PaymentDate] ON [dbo].[CashRegister]
+(
+	[PaymentDate] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [IX_Orders_CompletionDate]    Script Date: 11/14/2025 9:07:46 PM ******/
+CREATE NONCLUSTERED INDEX [IX_Orders_CompletionDate] ON [dbo].[Orders]
+(
+	[CompletionDate] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [IX_Orders_CustomerID]    Script Date: 11/14/2025 9:07:46 PM ******/
+CREATE NONCLUSTERED INDEX [IX_Orders_CustomerID] ON [dbo].[Orders]
+(
+	[CustomerID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [IX_Orders_OrderDate]    Script Date: 11/14/2025 9:07:46 PM ******/
+CREATE NONCLUSTERED INDEX [IX_Orders_OrderDate] ON [dbo].[Orders]
+(
+	[OrderDate] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [IX_Orders_ProductID]    Script Date: 11/14/2025 9:07:46 PM ******/
+CREATE NONCLUSTERED INDEX [IX_Orders_ProductID] ON [dbo].[Orders]
+(
+	[ProductID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [IX_Orders_StatusID]    Script Date: 11/14/2025 9:07:46 PM ******/
+CREATE NONCLUSTERED INDEX [IX_Orders_StatusID] ON [dbo].[Orders]
+(
+	[StatusID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [IX_Orders_TailorID]    Script Date: 11/14/2025 9:07:46 PM ******/
+CREATE NONCLUSTERED INDEX [IX_Orders_TailorID] ON [dbo].[Orders]
+(
+	[TailorID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[Orders] ADD  DEFAULT ((0)) FOR [UrgencyPercentage]
+GO
+ALTER TABLE [dbo].[Orders] ADD  DEFAULT ('English') FOR [Language]
+GO
+ALTER TABLE [dbo].[CashRegister]  WITH CHECK ADD FOREIGN KEY([OrderID])
+REFERENCES [dbo].[Orders] ([OrderID])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[Fabrics]  WITH CHECK ADD FOREIGN KEY([FabricTypeID])
+REFERENCES [dbo].[FabricTypes] ([FabricTypeID])
+GO
+ALTER TABLE [dbo].[OrderComplications]  WITH CHECK ADD FOREIGN KEY([ComplicationID])
+REFERENCES [dbo].[Complications] ([ComplicationID])
+GO
+ALTER TABLE [dbo].[OrderComplications]  WITH CHECK ADD FOREIGN KEY([OrderID])
+REFERENCES [dbo].[Orders] ([OrderID])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[OrderCosts]  WITH CHECK ADD FOREIGN KEY([OrderID])
+REFERENCES [dbo].[Orders] ([OrderID])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[OrderFabrics]  WITH CHECK ADD FOREIGN KEY([FabricID])
+REFERENCES [dbo].[Fabrics] ([FabricID])
+GO
+ALTER TABLE [dbo].[OrderFabrics]  WITH CHECK ADD FOREIGN KEY([OrderID])
+REFERENCES [dbo].[Orders] ([OrderID])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[Orders]  WITH CHECK ADD FOREIGN KEY([CustomerID])
+REFERENCES [dbo].[Customers] ([CustomerID])
+ON DELETE SET NULL
+GO
+ALTER TABLE [dbo].[Orders]  WITH CHECK ADD FOREIGN KEY([ProductID])
+REFERENCES [dbo].[Products] ([ProductID])
+ON DELETE SET NULL
+GO
+ALTER TABLE [dbo].[Orders]  WITH CHECK ADD FOREIGN KEY([StatusID])
+REFERENCES [dbo].[OrderStatuses] ([StatusID])
+GO
+ALTER TABLE [dbo].[Orders]  WITH CHECK ADD FOREIGN KEY([TailorID])
+REFERENCES [dbo].[Tailors] ([TailorID])
+ON DELETE SET NULL
+GO
+ALTER TABLE [dbo].[Products]  WITH CHECK ADD FOREIGN KEY([CategoryID])
+REFERENCES [dbo].[Categories] ([CategoryID])
+ON DELETE SET NULL
+GO
+ALTER TABLE [dbo].[Tailors]  WITH CHECK ADD FOREIGN KEY([CategoryID])
+REFERENCES [dbo].[Categories] ([CategoryID])
+ON DELETE SET NULL
+GO
+ALTER TABLE [dbo].[CashRegister]  WITH CHECK ADD CHECK  (([Amount]>(0)))
+GO
+ALTER TABLE [dbo].[Complications]  WITH CHECK ADD CHECK  (([PricePerElement]>(0)))
+GO
+ALTER TABLE [dbo].[Fabrics]  WITH CHECK ADD CHECK  (([Price]>(0)))
+GO
+ALTER TABLE [dbo].[Fabrics]  WITH CHECK ADD CHECK  (([Quantity]>=(0)))
+GO
+ALTER TABLE [dbo].[OrderComplications]  WITH CHECK ADD CHECK  (([ElementCount]>=(0)))
+GO
+ALTER TABLE [dbo].[OrderCosts]  WITH CHECK ADD CHECK  (([BaseCost]>=(0)))
+GO
+ALTER TABLE [dbo].[OrderCosts]  WITH CHECK ADD CHECK  (([ComplicationCost]>=(0)))
+GO
+ALTER TABLE [dbo].[OrderCosts]  WITH CHECK ADD CHECK  (([FabricCost]>=(0)))
+GO
+ALTER TABLE [dbo].[OrderCosts]  WITH CHECK ADD CHECK  (([UrgencyCost]>=(0)))
+GO
+ALTER TABLE [dbo].[OrderFabrics]  WITH CHECK ADD CHECK  (([FabricQuantity]>=(0)))
+GO
+ALTER TABLE [dbo].[Orders]  WITH CHECK ADD CHECK  (([UrgencyPercentage]>=(0) AND [UrgencyPercentage]<=(100)))
+GO
+ALTER TABLE [dbo].[Products]  WITH CHECK ADD CHECK  (([BasePrice]>(0)))
+GO
+USE [master]
+GO
+ALTER DATABASE [Atelier] SET  READ_WRITE 
+GO
+
+
+USE [master]
+GO
+
+-- 1. Логин для администратора БД
+CREATE LOGIN [atelier_admin] 
+WITH PASSWORD = 'Admin@2025!Strong', 
+DEFAULT_DATABASE = [master],
+CHECK_EXPIRATION = OFF,
+CHECK_POLICY = ON
+GO
+
+-- 2. Логин для менеджера
+CREATE LOGIN [manager] 
+WITH PASSWORD = 'Manager@2025!Pass', 
+DEFAULT_DATABASE = [master],
+CHECK_EXPIRATION = OFF,
+CHECK_POLICY = ON
+GO
+
+-- 3. Логин для закройщика
+CREATE LOGIN [tailor_user] 
+WITH PASSWORD = 'Tailor@2025!Pass', 
+DEFAULT_DATABASE = [master],
+CHECK_EXPIRATION = OFF,
+CHECK_POLICY = ON
+GO
+
+-- 4. Логин для кассира
+CREATE LOGIN [cashier] 
+WITH PASSWORD = 'Cashier@2025!Pass', 
+DEFAULT_DATABASE = [master],
+CHECK_EXPIRATION = OFF,
+CHECK_POLICY = ON
+GO
+
+USE [master]
+GO
+ALTER LOGIN [atelier_admin] WITH DEFAULT_DATABASE = [Atelier]
+ALTER LOGIN [manager] WITH DEFAULT_DATABASE = [Atelier]
+ALTER LOGIN [tailor_user] WITH DEFAULT_DATABASE = [Atelier]
+ALTER LOGIN [cashier] WITH DEFAULT_DATABASE = [Atelier]
+GO
+
+-- Выполните это от пользователя sa или администратора
+USE master;
+GO
+
+-- Выдайте права на просмотр состояния сервера
+GRANT VIEW SERVER STATE TO atelier_admin;
+GO
+
+-- Выдайте права на управление аудитом сервера
+GRANT ALTER ANY SERVER AUDIT TO atelier_admin;
+GO
+
+-- Выдайте права на управление спецификациями аудита
+GRANT CONTROL SERVER TO atelier_admin;
+GO
+
+-- Или более ограниченный вариант без CONTROL SERVER:
+-- GRANT ALTER ANY DATABASE AUDIT TO atelier_admin;
+
+
+-- ============================================================================
+-- STAGE 1: ATELIER DATABASE BACKUP
+-- Course Project - Database Security System
+-- ============================================================================
+
+USE [master]
+GO
+
+-- ============================================================================
+-- STEP 1: CREATE DIRECTORIES FOR BACKUPS
+-- ============================================================================
+-- IMPORTANT: Make sure these folders exist!
+-- Your directory structure:
+-- C:\CP\Backups\Atelier\Full\      - for full backups
+-- C:\CP\Backups\Atelier\Diff\      - for differential backups
+-- C:\CP\Backups\Atelier\Log\       - for transaction log backups
+
+-- ============================================================================
+-- STEP 2: CHECK RECOVERY MODEL
+-- ============================================================================
+-- For transaction log backups, FULL recovery model is required
+-- (already set to RECOVERY FULL in your database creation script)
+
+SELECT name, recovery_model_desc 
+FROM sys.databases 
+WHERE name = 'Atelier';
+GO
+
+-- If you need to change it (should already be FULL):
+-- ALTER DATABASE [Atelier] SET RECOVERY FULL;
+-- GO
+
+-- ============================================================================
+-- STEP 3: CREATE FULL BACKUP
+-- ============================================================================
+-- Executed once a week (Sunday at 00:00)
+
+BACKUP DATABASE [Atelier]
+TO DISK = N'C:\CP\Backups\Atelier\Full\Atelier_Full_Manual.bak'
+WITH 
+    FORMAT,                          -- Overwrite existing file
+    INIT,                            -- Create new backup set
+    NAME = N'Atelier-Full Backup',   -- Backup name
+    DESCRIPTION = N'Full backup of Atelier DB for course project',
+    COMPRESSION,                     -- Compression (saves space)
+    STATS = 10;                      -- Show progress every 10%
+GO
+
+PRINT 'Full backup created successfully!'
+GO
+
+-- ============================================================================
+-- STEP 4: CREATE DIFFERENTIAL BACKUP
+-- ============================================================================
+-- Executed daily at 00:00 (except Sunday)
+-- Copies only changes since last FULL backup
+
+BACKUP DATABASE [Atelier]
+TO DISK = N'C:\CP\Backups\Atelier\Diff\Atelier_Diff_Manual.bak'
+WITH 
+    DIFFERENTIAL,                    -- Differential backup
+    FORMAT,
+    INIT,
+    NAME = N'Atelier-Differential Backup',
+    DESCRIPTION = N'Differential backup of Atelier DB',
+    COMPRESSION,
+    STATS = 10;
+GO
+
+PRINT 'Differential backup created successfully!'
+GO
+
+-- ============================================================================
+-- STEP 5: CREATE TRANSACTION LOG BACKUP
+-- ============================================================================
+-- Executed every hour (24/7)
+-- Copies transaction log and truncates it
+
+BACKUP LOG [Atelier]
+TO DISK = N'C:\CP\Backups\Atelier\Log\Atelier_Log_Manual.trn'
+WITH 
+    FORMAT,
+    INIT,
+    NAME = N'Atelier-Transaction Log Backup',
+    DESCRIPTION = N'Transaction log backup of Atelier DB',
+    COMPRESSION,
+    STATS = 10;
+GO
+
+PRINT 'Transaction log backup created successfully!'
+GO
+
+-- ============================================================================
+-- STEP 6: CREATE SQL SERVER AGENT JOBS (SCHEDULING)
+-- ============================================================================
+-- IMPORTANT: SQL Server Agent must be running!
+-- Check: SQL Server Configuration Manager -> SQL Server Agent -> Running
+
+-- ----------------------------------------------------------------------------
+-- 6.1. JOB: FULL BACKUP (weekly)
+-- ----------------------------------------------------------------------------
+USE [msdb]
+GO
+
+-- Delete existing job (if exists)
+IF EXISTS (SELECT job_id FROM msdb.dbo.sysjobs WHERE name = N'Atelier - Full Backup Weekly')
+    EXEC msdb.dbo.sp_delete_job @job_name = N'Atelier - Full Backup Weekly';
+GO
+
+-- Create job
+EXEC msdb.dbo.sp_add_job
+    @job_name = N'Atelier - Full Backup Weekly',
+    @enabled = 1,
+    @description = N'Weekly full backup of Atelier DB (Sunday 00:00)',
+    @category_name = N'Database Maintenance';
+GO
+
+-- Add job step
+EXEC msdb.dbo.sp_add_jobstep
+    @job_name = N'Atelier - Full Backup Weekly',
+    @step_name = N'Full Backup Step',
+    @subsystem = N'TSQL',
+    @command = N'
+DECLARE @BackupFile NVARCHAR(500);
+SET @BackupFile = N''C:\CP\Backups\Atelier\Full\Atelier_Full_'' 
+    + CONVERT(NVARCHAR(8), GETDATE(), 112) + ''_'' 
+    + REPLACE(CONVERT(NVARCHAR(8), GETDATE(), 108), '':'', '''') + ''.bak'';
+
+BACKUP DATABASE [Atelier]
+TO DISK = @BackupFile
+WITH 
+    FORMAT,
+    INIT,
+    NAME = N''Atelier-Full Backup'',
+    COMPRESSION,
+    STATS = 10;
+',
+    @database_name = N'master',
+    @retry_attempts = 3,
+    @retry_interval = 5;
+GO
+
+-- Create schedule (every Sunday at 00:00)
+EXEC msdb.dbo.sp_add_schedule
+    @schedule_name = N'Weekly Sunday Midnight',
+    @enabled = 1,
+    @freq_type = 8,                  -- Weekly
+    @freq_interval = 1,              -- Sunday (1=Sun, 2=Mon, ..., 64=Sat)
+    @freq_recurrence_factor = 1,     -- Every week
+    @active_start_time = 000000;     -- 00:00:00
+GO
+
+-- Attach schedule to job
+EXEC msdb.dbo.sp_attach_schedule
+    @job_name = N'Atelier - Full Backup Weekly',
+    @schedule_name = N'Weekly Sunday Midnight';
+GO
+
+-- Add job to local server
+EXEC msdb.dbo.sp_add_jobserver
+    @job_name = N'Atelier - Full Backup Weekly',
+    @server_name = N'(local)';
+GO
+
+PRINT 'Job "Atelier - Full Backup Weekly" created successfully!'
+GO
+
+-- ----------------------------------------------------------------------------
+-- 6.2. JOB: DIFFERENTIAL BACKUP (daily)
+-- ----------------------------------------------------------------------------
+-- Delete existing job (if exists)
+IF EXISTS (SELECT job_id FROM msdb.dbo.sysjobs WHERE name = N'Atelier - Differential Backup Daily')
+    EXEC msdb.dbo.sp_delete_job @job_name = N'Atelier - Differential Backup Daily';
+GO
+
+-- Create job
+EXEC msdb.dbo.sp_add_job
+    @job_name = N'Atelier - Differential Backup Daily',
+    @enabled = 1,
+    @description = N'Daily differential backup of Atelier DB (except Sunday, 00:00)',
+    @category_name = N'Database Maintenance';
+GO
+
+-- Add job step
+EXEC msdb.dbo.sp_add_jobstep
+    @job_name = N'Atelier - Differential Backup Daily',
+    @step_name = N'Differential Backup Step',
+    @subsystem = N'TSQL',
+    @command = N'
+-- Check: do not run on Sunday (full backup on that day)
+IF DATEPART(WEEKDAY, GETDATE()) <> 1
+BEGIN
+    DECLARE @BackupFile NVARCHAR(500);
+    SET @BackupFile = N''C:\CP\Backups\Atelier\Diff\Atelier_Diff_'' 
+        + CONVERT(NVARCHAR(8), GETDATE(), 112) + ''_'' 
+        + REPLACE(CONVERT(NVARCHAR(8), GETDATE(), 108), '':'', '''') + ''.bak'';
+
+    BACKUP DATABASE [Atelier]
+    TO DISK = @BackupFile
+    WITH 
+        DIFFERENTIAL,
+        FORMAT,
+        INIT,
+        NAME = N''Atelier-Differential Backup'',
+        COMPRESSION,
+        STATS = 10;
+END
+',
+    @database_name = N'master',
+    @retry_attempts = 3,
+    @retry_interval = 5;
+GO
+
+-- Create schedule (daily at 00:00)
+EXEC msdb.dbo.sp_add_schedule
+    @schedule_name = N'Daily Midnight',
+    @enabled = 1,
+    @freq_type = 4,                  -- Daily
+    @freq_interval = 1,              -- Every day
+    @active_start_time = 000000;     -- 00:00:00
+GO
+
+-- Attach schedule to job
+EXEC msdb.dbo.sp_attach_schedule
+    @job_name = N'Atelier - Differential Backup Daily',
+    @schedule_name = N'Daily Midnight';
+GO
+
+-- Add job to local server
+EXEC msdb.dbo.sp_add_jobserver
+    @job_name = N'Atelier - Differential Backup Daily',
+    @server_name = N'(local)';
+GO
+
+PRINT 'Job "Atelier - Differential Backup Daily" created successfully!'
+GO
+
+-- ----------------------------------------------------------------------------
+-- 6.3. JOB: TRANSACTION LOG BACKUP (hourly)
+-- ----------------------------------------------------------------------------
+-- Delete existing job (if exists)
+IF EXISTS (SELECT job_id FROM msdb.dbo.sysjobs WHERE name = N'Atelier - Log Backup Hourly')
+    EXEC msdb.dbo.sp_delete_job @job_name = N'Atelier - Log Backup Hourly';
+GO
+
+-- Create job
+EXEC msdb.dbo.sp_add_job
+    @job_name = N'Atelier - Log Backup Hourly',
+    @enabled = 1,
+    @description = N'Hourly transaction log backup of Atelier DB',
+    @category_name = N'Database Maintenance';
+GO
+
+-- Add job step
+EXEC msdb.dbo.sp_add_jobstep
+    @job_name = N'Atelier - Log Backup Hourly',
+    @step_name = N'Log Backup Step',
+    @subsystem = N'TSQL',
+    @command = N'
+DECLARE @BackupFile NVARCHAR(500);
+SET @BackupFile = N''C:\CP\Backups\Atelier\Log\Atelier_Log_'' 
+    + CONVERT(NVARCHAR(8), GETDATE(), 112) + ''_'' 
+    + REPLACE(CONVERT(NVARCHAR(8), GETDATE(), 108), '':'', '''') + ''.trn'';
+
+BACKUP LOG [Atelier]
+TO DISK = @BackupFile
+WITH 
+    FORMAT,
+    INIT,
+    NAME = N''Atelier-Transaction Log Backup'',
+    COMPRESSION,
+    STATS = 10;
+',
+    @database_name = N'master',
+    @retry_attempts = 3,
+    @retry_interval = 5;
+GO
+
+-- Create schedule (every hour)
+EXEC msdb.dbo.sp_add_schedule
+    @schedule_name = N'Hourly',
+    @enabled = 1,
+    @freq_type = 4,                  -- Daily
+    @freq_interval = 1,              -- Every day
+    @freq_subday_type = 8,           -- Hours
+    @freq_subday_interval = 1,       -- Every hour
+    @active_start_time = 000000;     -- Start at 00:00:00
+GO
+
+-- Attach schedule to job
+EXEC msdb.dbo.sp_attach_schedule
+    @job_name = N'Atelier - Log Backup Hourly',
+    @schedule_name = N'Hourly';
+GO
+
+-- Add job to local server
+EXEC msdb.dbo.sp_add_jobserver
+    @job_name = N'Atelier - Log Backup Hourly',
+    @server_name = N'(local)';
+GO
+
+PRINT 'Job "Atelier - Log Backup Hourly" created successfully!'
+GO
+
+-- ============================================================================
+-- STEP 7: CHECK CREATED JOBS
+-- ============================================================================
+SELECT 
+    job_id,
+    name AS JobName,
+    enabled AS IsEnabled,
+    date_created AS CreatedDate,
+    description
+FROM msdb.dbo.sysjobs
+WHERE name LIKE 'Atelier%'
+ORDER BY name;
+GO
+
+-- View schedules
+SELECT 
+    j.name AS JobName,
+    s.name AS ScheduleName,
+    s.enabled AS IsEnabled,
+    CASE s.freq_type
+        WHEN 1 THEN 'One time'
+        WHEN 4 THEN 'Daily'
+        WHEN 8 THEN 'Weekly'
+        WHEN 16 THEN 'Monthly'
+    END AS FrequencyType,
+    STUFF(STUFF(RIGHT('000000' + CAST(s.active_start_time AS VARCHAR(6)), 6), 5, 0, ':'), 3, 0, ':') AS StartTime
+FROM msdb.dbo.sysjobs j
+INNER JOIN msdb.dbo.sysjobschedules js ON j.job_id = js.job_id
+INNER JOIN msdb.dbo.sysschedules s ON js.schedule_id = s.schedule_id
+WHERE j.name LIKE 'Atelier%'
+ORDER BY j.name;
+GO
+
+-- ============================================================================
+-- STEP 8: MANUAL JOB EXECUTION (FOR TESTING)
+-- ============================================================================
+-- Run full backup
+EXEC msdb.dbo.sp_start_job @job_name = N'Atelier - Full Backup Weekly';
+GO
+
+-- Check execution status (wait a few seconds)
+WAITFOR DELAY '00:00:05';
+GO
+
+SELECT 
+    j.name AS JobName,
+    h.run_date AS RunDate,
+    h.run_time AS RunTime,
+    h.run_duration AS DurationSeconds,
+    CASE h.run_status
+        WHEN 0 THEN 'Failed'
+        WHEN 1 THEN 'Succeeded'
+        WHEN 2 THEN 'Retry'
+        WHEN 3 THEN 'Canceled'
+        WHEN 4 THEN 'In Progress'
+    END AS Status,
+    h.message AS Message
+FROM msdb.dbo.sysjobs j
+INNER JOIN msdb.dbo.sysjobhistory h ON j.job_id = h.job_id
+WHERE j.name LIKE 'Atelier%'
+    AND h.step_id = 0  -- 0 = overall job status
+ORDER BY h.run_date DESC, h.run_time DESC;
+GO
+
+-- ============================================================================
+-- STEP 9: VIEW BACKUP INFORMATION
+-- ============================================================================
+-- View all backups of Atelier DB
+RESTORE HEADERONLY 
+FROM DISK = N'C:\CP\Backups\Atelier\Full\Atelier_Full_Manual.bak';
+GO
+
+-- Check backup contents
+RESTORE FILELISTONLY 
+FROM DISK = N'C:\CP\Backups\Atelier\Full\Atelier_Full_Manual.bak';
+GO
+
+-- Backup history from system tables
+SELECT 
+    bs.database_name AS DatabaseName,
+    bs.backup_start_date AS BackupDate,
+    CASE bs.type
+        WHEN 'D' THEN 'Full'
+        WHEN 'I' THEN 'Differential'
+        WHEN 'L' THEN 'Log'
+    END AS BackupType,
+    bs.backup_size / 1024 / 1024 AS BackupSizeMB,
+    bs.compressed_backup_size / 1024 / 1024 AS CompressedSizeMB,
+    bmf.physical_device_name AS BackupFile
+FROM msdb.dbo.backupset bs
+INNER JOIN msdb.dbo.backupmediafamily bmf ON bs.media_set_id = bmf.media_set_id
+WHERE bs.database_name = 'Atelier'
+ORDER BY bs.backup_start_date DESC;
+GO
+
+-- ============================================================================
+-- STEP 10: RESTORE DEMONSTRATION
+-- ============================================================================
+-- WARNING: This script will restore the DB from backup!
+-- Use for demonstration in course project
+
+/*
+-- 1. Create test DB for demonstration
+USE [master];
+GO
+
+-- Close all connections to DB
+ALTER DATABASE [Atelier] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+GO
+
+-- 2. Restore FULL backup
+RESTORE DATABASE [Atelier]
+FROM DISK = N'C:\CP\Backups\Atelier\Full\Atelier_Full_Manual.bak'
+WITH 
+    FILE = 1,
+    NORECOVERY,  -- Do not finish restore (to apply diff and log)
+    REPLACE,     -- Replace existing DB
+    STATS = 10;
+GO
+
+-- 3. Restore DIFFERENTIAL backup (if exists)
+RESTORE DATABASE [Atelier]
+FROM DISK = N'C:\CP\Backups\Atelier\Diff\Atelier_Diff_Manual.bak'
+WITH 
+    FILE = 1,
+    NORECOVERY,
+    STATS = 10;
+GO
+
+-- 4. Restore TRANSACTION LOG (if exists)
+RESTORE LOG [Atelier]
+FROM DISK = N'C:\CP\Backups\Atelier\Log\Atelier_Log_Manual.trn'
+WITH 
+    FILE = 1,
+    RECOVERY,    -- Finish restore and open DB
+    STATS = 10;
+GO
+
+-- 5. Return DB to multi-user mode
+ALTER DATABASE [Atelier] SET MULTI_USER;
+GO
+
+PRINT 'Atelier database restored successfully!'
+GO
+*/
+
+-- ============================================================================
+-- SUMMARY AND RECOMMENDATIONS FOR COURSE PROJECT
+-- ============================================================================
+/*
+📋 WHAT WAS IMPLEMENTED:
+
+1. ✅ Three types of backups:
+   - Full - weekly (Sunday, 00:00)
+   - Differential - daily (00:00, except Sunday)
+   - Transaction log - hourly
+
+2. ✅ Automation via SQL Server Agent:
+   - 3 jobs with schedules
+   - Automatic file naming with date/time
+   - Backup compression to save space
+
+3. ✅ Recovery strategy:
+   - RPO (Recovery Point Objective) = 1 hour
+   - RTO (Recovery Time Objective) = depends on DB size
+
+📊 FOR COURSE PROJECT PRESENTATION:
+
+1. Show created jobs in SQL Server Agent
+2. Demonstrate backup files in folders
+3. Perform test restore
+4. Compare sizes: original DB vs compressed backup
+5. Explain 3-tier backup strategy
+
+💾 DISK SPACE:
+- Full backup: ~10-50 MB (depends on data)
+- Differential: ~1-10 MB
+- Log: ~0.5-5 MB every hour
+
+🔧 RETENTION POLICY (recommendation):
+- Full backups: keep 4 weeks (month)
+- Differential: keep 7 days
+- Logs: keep 7 days
+
+⚠️ IMPORTANT FOR PRODUCTION:
+- Store backups on separate disk/server
+- Test restore regularly
+- Document recovery procedures
+*/
+
+PRINT '
+============================================================================
+✅ STAGE 1 COMPLETED SUCCESSFULLY!
+============================================================================
+Created:
+- 3 automatic backup jobs
+- Recovery strategy with RPO = 1 hour
+- Scripts for restore demonstration
+
+📁 Check folders:
+   C:\CP\Backups\Atelier\Full\
+   C:\CP\Backups\Atelier\Diff\
+   C:\CP\Backups\Atelier\Log\
+
+🔍 Next step: Stage 2 - Filegroups
+============================================================================
+'
+GO
+
+
+-- ============================================================================
+-- STAGE 2: FILEGROUPS FOR ATELIER DATABASE (COMPLETE FIXED VERSION)
+-- Course Project - Database Security System
+-- ============================================================================
+
+USE [master]
+GO
+
+PRINT '
+============================================================================
+STAGE 2: CREATING FILEGROUPS
+============================================================================
+Will create 3 additional filegroups:
+  - ORDERS_FG  - transactional data (Orders, OrderCosts, etc.)
+  - LOGS_FG    - audit logs (OrderLogs)
+  - INDEXES_FG - nonclustered indexes
+============================================================================
+'
+GO
+
+-- ============================================================================
+-- STEP 1: CHECK CURRENT DATABASE STRUCTURE
+-- ============================================================================
+USE [Atelier]
+GO
+
+PRINT 'Step 1: Checking current database structure...'
+GO
+
+SELECT 
+    t.name AS TableName,
+    ISNULL(fg.name, 'N/A') AS CurrentFileGroup,
+    p.[rows] AS [RowCount]
+FROM sys.tables t
+LEFT JOIN sys.indexes i ON t.object_id = i.object_id AND i.index_id <= 1
+LEFT JOIN sys.filegroups fg ON i.data_space_id = fg.data_space_id
+LEFT JOIN sys.partitions p ON t.object_id = p.object_id AND i.index_id = p.index_id
+ORDER BY t.name;
+GO
+
+-- ============================================================================
+-- STEP 2: CREATE NEW FILEGROUPS (IF NOT EXIST)
+-- ============================================================================
+USE [master]
+GO
+
+PRINT 'Step 2: Creating filegroups...'
+GO
+
+-- 2.1. ORDERS_FG - Transactional data
+IF NOT EXISTS (SELECT 1 FROM sys.filegroups WHERE name = 'ORDERS_FG')
+BEGIN
+    ALTER DATABASE [Atelier] ADD FILEGROUP [ORDERS_FG];
+    PRINT '  - Filegroup ORDERS_FG created'
+END
+ELSE
+    PRINT '  - Filegroup ORDERS_FG already exists (skipping)'
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.database_files WHERE name = 'Atelier_Orders')
+BEGIN
+    ALTER DATABASE [Atelier]
+    ADD FILE 
+    (
+        NAME = N'Atelier_Orders',
+        FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL17.MSSQLSERVER\MSSQL\DATA\Atelier_Orders.ndf',
+        SIZE = 8192KB,
+        MAXSIZE = UNLIMITED,
+        FILEGROWTH = 65536KB
+    )
+    TO FILEGROUP [ORDERS_FG];
+    PRINT '  - File Atelier_Orders.ndf added'
+END
+ELSE
+    PRINT '  - File Atelier_Orders.ndf already exists (skipping)'
+GO
+
+-- 2.2. LOGS_FG - Audit logs
+IF NOT EXISTS (SELECT 1 FROM sys.filegroups WHERE name = 'LOGS_FG')
+BEGIN
+    ALTER DATABASE [Atelier] ADD FILEGROUP [LOGS_FG];
+    PRINT '  - Filegroup LOGS_FG created'
+END
+ELSE
+    PRINT '  - Filegroup LOGS_FG already exists (skipping)'
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.database_files WHERE name = 'Atelier_Logs')
+BEGIN
+    ALTER DATABASE [Atelier]
+    ADD FILE 
+    (
+        NAME = N'Atelier_Logs',
+        FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL17.MSSQLSERVER\MSSQL\DATA\Atelier_Logs.ndf',
+        SIZE = 8192KB,
+        MAXSIZE = UNLIMITED,
+        FILEGROWTH = 65536KB
+    )
+    TO FILEGROUP [LOGS_FG];
+    PRINT '  - File Atelier_Logs.ndf added'
+END
+ELSE
+    PRINT '  - File Atelier_Logs.ndf already exists (skipping)'
+GO
+
+-- 2.3. INDEXES_FG - Nonclustered indexes
+IF NOT EXISTS (SELECT 1 FROM sys.filegroups WHERE name = 'INDEXES_FG')
+BEGIN
+    ALTER DATABASE [Atelier] ADD FILEGROUP [INDEXES_FG];
+    PRINT '  - Filegroup INDEXES_FG created'
+END
+ELSE
+    PRINT '  - Filegroup INDEXES_FG already exists (skipping)'
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.database_files WHERE name = 'Atelier_Indexes')
+BEGIN
+    ALTER DATABASE [Atelier]
+    ADD FILE 
+    (
+        NAME = N'Atelier_Indexes',
+        FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL17.MSSQLSERVER\MSSQL\DATA\Atelier_Indexes.ndf',
+        SIZE = 8192KB,
+        MAXSIZE = UNLIMITED,
+        FILEGROWTH = 65536KB
+    )
+    TO FILEGROUP [INDEXES_FG];
+    PRINT '  - File Atelier_Indexes.ndf added'
+END
+ELSE
+    PRINT '  - File Atelier_Indexes.ndf already exists (skipping)'
+GO
+
+-- Verify filegroups creation
+SELECT 
+    name AS FileGroupName,
+    type_desc AS [Type],
+    is_default AS IsDefault,
+    is_read_only AS IsReadOnly
+FROM sys.filegroups
+ORDER BY name;
+GO
+
+-- ============================================================================
+-- STEP 3: MOVE TABLES TO FILEGROUPS
+-- ============================================================================
+USE [Atelier]
+GO
+
+PRINT '
+Step 3: Moving tables to appropriate filegroups...'
+GO
+
+-- ============================================================================
+-- 3.1. TABLE: Orders
+-- ============================================================================
+PRINT '  - Moving table Orders to ORDERS_FG...'
+GO
+
+-- Drop all foreign keys referencing Orders table
+DECLARE @sql NVARCHAR(MAX);
+DECLARE @fkName NVARCHAR(128);
+DECLARE @parentTable NVARCHAR(128);
+
+DECLARE fk_cursor CURSOR FOR
+SELECT fk.name, OBJECT_NAME(fk.parent_object_id) AS parent_table
+FROM sys.foreign_keys fk
+WHERE fk.referenced_object_id = OBJECT_ID('Orders');
+
+OPEN fk_cursor;
+FETCH NEXT FROM fk_cursor INTO @fkName, @parentTable;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    SET @sql = 'ALTER TABLE [dbo].[' + @parentTable + '] DROP CONSTRAINT [' + @fkName + ']';
+    EXEC sp_executesql @sql;
+    PRINT '    - Dropped FK: ' + @fkName;
+    FETCH NEXT FROM fk_cursor INTO @fkName, @parentTable;
+END
+
+CLOSE fk_cursor;
+DEALLOCATE fk_cursor;
+GO
+
+-- Drop PK on Orders
+DECLARE @PKName NVARCHAR(128);
+SELECT @PKName = kc.name
+FROM sys.key_constraints kc
+WHERE kc.parent_object_id = OBJECT_ID('Orders')
+  AND kc.type = 'PK';
+
+IF @PKName IS NOT NULL
+BEGIN
+    EXEC('ALTER TABLE [dbo].[Orders] DROP CONSTRAINT [' + @PKName + ']');
+    PRINT '    - Primary Key dropped: ' + @PKName;
+END
+GO
+
+-- Create new PK on ORDERS_FG
+ALTER TABLE [dbo].[Orders] 
+ADD CONSTRAINT [PK_Orders] PRIMARY KEY CLUSTERED ([OrderID] ASC)
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, 
+      ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
+ON [ORDERS_FG];
+GO
+
+PRINT '    - Table Orders moved to ORDERS_FG'
+GO
+
+-- ============================================================================
+-- 3.2. TABLE: OrderCosts
+-- ============================================================================
+PRINT '  - Moving table OrderCosts to ORDERS_FG...'
+GO
+
+-- Drop FK first
+DECLARE @sql NVARCHAR(MAX);
+DECLARE @fkName NVARCHAR(128);
+
+DECLARE fk_cursor CURSOR FOR
+SELECT fk.name
+FROM sys.foreign_keys fk
+WHERE fk.parent_object_id = OBJECT_ID('OrderCosts');
+
+OPEN fk_cursor;
+FETCH NEXT FROM fk_cursor INTO @fkName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    SET @sql = 'ALTER TABLE [dbo].[OrderCosts] DROP CONSTRAINT [' + @fkName + ']';
+    EXEC sp_executesql @sql;
+    FETCH NEXT FROM fk_cursor INTO @fkName;
+END
+
+CLOSE fk_cursor;
+DEALLOCATE fk_cursor;
+GO
+
+-- Drop and recreate PK
+DECLARE @PKName NVARCHAR(128);
+SELECT @PKName = kc.name
+FROM sys.key_constraints kc
+WHERE kc.parent_object_id = OBJECT_ID('OrderCosts')
+  AND kc.type = 'PK';
+
+IF @PKName IS NOT NULL
+    EXEC('ALTER TABLE [dbo].[OrderCosts] DROP CONSTRAINT [' + @PKName + ']');
+GO
+
+ALTER TABLE [dbo].[OrderCosts] 
+ADD CONSTRAINT [PK_OrderCosts] PRIMARY KEY CLUSTERED ([OrderID] ASC)
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, 
+      ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
+ON [ORDERS_FG];
+GO
+
+PRINT '    - Table OrderCosts moved to ORDERS_FG'
+GO
+
+-- ============================================================================
+-- 3.3. TABLE: OrderComplications
+-- ============================================================================
+PRINT '  - Moving table OrderComplications to ORDERS_FG...'
+GO
+
+-- Drop FK
+DECLARE @sql NVARCHAR(MAX);
+DECLARE @fkName NVARCHAR(128);
+
+DECLARE fk_cursor CURSOR FOR
+SELECT fk.name
+FROM sys.foreign_keys fk
+WHERE fk.parent_object_id = OBJECT_ID('OrderComplications');
+
+OPEN fk_cursor;
+FETCH NEXT FROM fk_cursor INTO @fkName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    SET @sql = 'ALTER TABLE [dbo].[OrderComplications] DROP CONSTRAINT [' + @fkName + ']';
+    EXEC sp_executesql @sql;
+    FETCH NEXT FROM fk_cursor INTO @fkName;
+END
+
+CLOSE fk_cursor;
+DEALLOCATE fk_cursor;
+GO
+
+DECLARE @PKName NVARCHAR(128);
+SELECT @PKName = kc.name
+FROM sys.key_constraints kc
+WHERE kc.parent_object_id = OBJECT_ID('OrderComplications')
+  AND kc.type = 'PK';
+
+IF @PKName IS NOT NULL
+    EXEC('ALTER TABLE [dbo].[OrderComplications] DROP CONSTRAINT [' + @PKName + ']');
+GO
+
+ALTER TABLE [dbo].[OrderComplications] 
+ADD CONSTRAINT [PK_OrderComplications] PRIMARY KEY CLUSTERED 
+    ([OrderID] ASC, [ComplicationID] ASC)
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, 
+      ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
+ON [ORDERS_FG];
+GO
+
+PRINT '    - Table OrderComplications moved to ORDERS_FG'
+GO
+
+-- ============================================================================
+-- 3.4. TABLE: OrderFabrics
+-- ============================================================================
+PRINT '  - Moving table OrderFabrics to ORDERS_FG...'
+GO
+
+-- Drop FK
+DECLARE @sql NVARCHAR(MAX);
+DECLARE @fkName NVARCHAR(128);
+
+DECLARE fk_cursor CURSOR FOR
+SELECT fk.name
+FROM sys.foreign_keys fk
+WHERE fk.parent_object_id = OBJECT_ID('OrderFabrics');
+
+OPEN fk_cursor;
+FETCH NEXT FROM fk_cursor INTO @fkName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    SET @sql = 'ALTER TABLE [dbo].[OrderFabrics] DROP CONSTRAINT [' + @fkName + ']';
+    EXEC sp_executesql @sql;
+    FETCH NEXT FROM fk_cursor INTO @fkName;
+END
+
+CLOSE fk_cursor;
+DEALLOCATE fk_cursor;
+GO
+
+DECLARE @PKName NVARCHAR(128);
+SELECT @PKName = kc.name
+FROM sys.key_constraints kc
+WHERE kc.parent_object_id = OBJECT_ID('OrderFabrics')
+  AND kc.type = 'PK';
+
+IF @PKName IS NOT NULL
+    EXEC('ALTER TABLE [dbo].[OrderFabrics] DROP CONSTRAINT [' + @PKName + ']');
+GO
+
+ALTER TABLE [dbo].[OrderFabrics] 
+ADD CONSTRAINT [PK_OrderFabrics] PRIMARY KEY CLUSTERED 
+    ([OrderID] ASC, [FabricID] ASC)
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, 
+      ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
+ON [ORDERS_FG];
+GO
+
+PRINT '    - Table OrderFabrics moved to ORDERS_FG'
+GO
+
+-- ============================================================================
+-- 3.5. TABLE: CashRegister
+-- ============================================================================
+PRINT '  - Moving table CashRegister to ORDERS_FG...'
+GO
+
+-- Drop FK
+DECLARE @sql NVARCHAR(MAX);
+DECLARE @fkName NVARCHAR(128);
+
+DECLARE fk_cursor CURSOR FOR
+SELECT fk.name
+FROM sys.foreign_keys fk
+WHERE fk.parent_object_id = OBJECT_ID('CashRegister');
+
+OPEN fk_cursor;
+FETCH NEXT FROM fk_cursor INTO @fkName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    SET @sql = 'ALTER TABLE [dbo].[CashRegister] DROP CONSTRAINT [' + @fkName + ']';
+    EXEC sp_executesql @sql;
+    FETCH NEXT FROM fk_cursor INTO @fkName;
+END
+
+CLOSE fk_cursor;
+DEALLOCATE fk_cursor;
+GO
+
+DECLARE @PKName NVARCHAR(128);
+SELECT @PKName = kc.name
+FROM sys.key_constraints kc
+WHERE kc.parent_object_id = OBJECT_ID('CashRegister')
+  AND kc.type = 'PK';
+
+IF @PKName IS NOT NULL
+    EXEC('ALTER TABLE [dbo].[CashRegister] DROP CONSTRAINT [' + @PKName + ']');
+GO
+
+ALTER TABLE [dbo].[CashRegister] 
+ADD CONSTRAINT [PK_CashRegister] PRIMARY KEY CLUSTERED 
+    ([OrderID] ASC, [PaymentDate] ASC)
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, 
+      ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
+ON [ORDERS_FG];
+GO
+
+PRINT '    - Table CashRegister moved to ORDERS_FG'
+GO
+
+-- ============================================================================
+-- 3.6. TABLE: OrderLogs (moving to LOGS_FG)
+-- ============================================================================
+PRINT '  - Moving table OrderLogs to LOGS_FG...'
+GO
+
+-- For tables with IDENTITY, need different approach
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'OrderLogs_New')
+    DROP TABLE [dbo].[OrderLogs_New];
+GO
+
+-- Create new table on LOGS_FG
+CREATE TABLE [dbo].[OrderLogs_New](
+    [LogID] [int] IDENTITY(1,1) NOT NULL,
+    [OrderID] [int] NULL,
+    [OperationType] [nvarchar](50) NULL,
+    [OperationDate] [datetime] NULL,
+    [UserName] [nvarchar](255) NULL,
+    CONSTRAINT [PK_OrderLogs_New] PRIMARY KEY CLUSTERED ([LogID] ASC)
+    WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, 
+          ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
+) ON [LOGS_FG];
+GO
+
+-- Copy data if exists
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'OrderLogs')
+BEGIN
+    IF EXISTS (SELECT 1 FROM [dbo].[OrderLogs])
+    BEGIN
+        SET IDENTITY_INSERT [dbo].[OrderLogs_New] ON;
+        
+        INSERT INTO [dbo].[OrderLogs_New] ([LogID], [OrderID], [OperationType], [OperationDate], [UserName])
+        SELECT [LogID], [OrderID], [OperationType], [OperationDate], [UserName]
+        FROM [dbo].[OrderLogs];
+        
+        SET IDENTITY_INSERT [dbo].[OrderLogs_New] OFF;
+        PRINT '    - Data copied from old table';
+    END
+    
+    -- Drop old table
+    DROP TABLE [dbo].[OrderLogs];
+    PRINT '    - Old table dropped';
+END
+GO
+
+-- Rename new table
+EXEC sp_rename '[dbo].[OrderLogs_New]', 'OrderLogs';
+EXEC sp_rename '[dbo].[PK_OrderLogs_New]', 'PK_OrderLogs', 'OBJECT';
+GO
+
+PRINT '    - Table OrderLogs moved to LOGS_FG'
+GO
+
+-- ============================================================================
+-- STEP 4: RESTORE ALL FOREIGN KEY CONSTRAINTS
+-- ============================================================================
+PRINT '
+Step 4: Restoring foreign key constraints...'
+GO
+
+-- CashRegister -> Orders
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_CashRegister_Orders')
+BEGIN
+    ALTER TABLE [dbo].[CashRegister] WITH CHECK 
+    ADD CONSTRAINT [FK_CashRegister_Orders] FOREIGN KEY([OrderID])
+    REFERENCES [dbo].[Orders] ([OrderID])
+    ON DELETE CASCADE;
+    PRINT '  - FK_CashRegister_Orders created'
+END
+GO
+
+-- OrderComplications -> Complications
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_OrderComplications_Complications')
+BEGIN
+    ALTER TABLE [dbo].[OrderComplications] WITH CHECK 
+    ADD CONSTRAINT [FK_OrderComplications_Complications] FOREIGN KEY([ComplicationID])
+    REFERENCES [dbo].[Complications] ([ComplicationID]);
+    PRINT '  - FK_OrderComplications_Complications created'
+END
+GO
+
+-- OrderComplications -> Orders
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_OrderComplications_Orders')
+BEGIN
+    ALTER TABLE [dbo].[OrderComplications] WITH CHECK 
+    ADD CONSTRAINT [FK_OrderComplications_Orders] FOREIGN KEY([OrderID])
+    REFERENCES [dbo].[Orders] ([OrderID])
+    ON DELETE CASCADE;
+    PRINT '  - FK_OrderComplications_Orders created'
+END
+GO
+
+-- OrderCosts -> Orders
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_OrderCosts_Orders')
+BEGIN
+    ALTER TABLE [dbo].[OrderCosts] WITH CHECK 
+    ADD CONSTRAINT [FK_OrderCosts_Orders] FOREIGN KEY([OrderID])
+    REFERENCES [dbo].[Orders] ([OrderID])
+    ON DELETE CASCADE;
+    PRINT '  - FK_OrderCosts_Orders created'
+END
+GO
+
+-- OrderFabrics -> Fabrics
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_OrderFabrics_Fabrics')
+BEGIN
+    ALTER TABLE [dbo].[OrderFabrics] WITH CHECK 
+    ADD CONSTRAINT [FK_OrderFabrics_Fabrics] FOREIGN KEY([FabricID])
+    REFERENCES [dbo].[Fabrics] ([FabricID]);
+    PRINT '  - FK_OrderFabrics_Fabrics created'
+END
+GO
+
+-- OrderFabrics -> Orders
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_OrderFabrics_Orders')
+BEGIN
+    ALTER TABLE [dbo].[OrderFabrics] WITH CHECK 
+    ADD CONSTRAINT [FK_OrderFabrics_Orders] FOREIGN KEY([OrderID])
+    REFERENCES [dbo].[Orders] ([OrderID])
+    ON DELETE CASCADE;
+    PRINT '  - FK_OrderFabrics_Orders created'
+END
+GO
+
+USE [Atelier]
+GO
+
+-- Fix FK_Orders_Customers
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Orders_Customers')
+BEGIN
+    ALTER TABLE [dbo].[Orders] WITH CHECK 
+    ADD CONSTRAINT [FK_Orders_Customers] FOREIGN KEY([CustomerID])
+    REFERENCES [dbo].[Customers] ([CustomerID])
+    ON DELETE NO ACTION;  -- Changed from SET NULL
+    PRINT '  - FK_Orders_Customers created'
+END
+GO
+
+-- Fix FK_Orders_Products
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Orders_Products')
+BEGIN
+    ALTER TABLE [dbo].[Orders] WITH CHECK 
+    ADD CONSTRAINT [FK_Orders_Products] FOREIGN KEY([ProductID])
+    REFERENCES [dbo].[Products] ([ProductID])
+    ON DELETE NO ACTION;  -- Changed from SET NULL
+    PRINT '  - FK_Orders_Products created'
+END
+GO
+
+-- Fix FK_Orders_Tailors
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Orders_Tailors')
+BEGIN
+    ALTER TABLE [dbo].[Orders] WITH CHECK 
+    ADD CONSTRAINT [FK_Orders_Tailors] FOREIGN KEY([TailorID])
+    REFERENCES [dbo].[Tailors] ([TailorID])
+    ON DELETE NO ACTION;  -- Changed from SET NULL
+    PRINT '  - FK_Orders_Tailors created'
+END
+GO
+
+-- Verify all foreign keys
+SELECT 
+    fk.name AS ForeignKeyName,
+    OBJECT_NAME(fk.parent_object_id) AS TableName,
+    OBJECT_NAME(fk.referenced_object_id) AS ReferencedTable,
+    delete_referential_action_desc AS DeleteAction
+FROM sys.foreign_keys fk
+WHERE OBJECT_NAME(fk.parent_object_id) = 'Orders'
+ORDER BY fk.name;
+
+-- Orders -> Customers
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Orders_Customers')
+BEGIN
+    ALTER TABLE [dbo].[Orders] WITH CHECK 
+    ADD CONSTRAINT [FK_Orders_Customers] FOREIGN KEY([CustomerID])
+    REFERENCES [dbo].[Customers] ([CustomerID])
+    ON DELETE SET NULL;
+    PRINT '  - FK_Orders_Customers created'
+END
+GO
+
+-- Orders -> Products
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Orders_Products')
+BEGIN
+    ALTER TABLE [dbo].[Orders] WITH CHECK 
+    ADD CONSTRAINT [FK_Orders_Products] FOREIGN KEY([ProductID])
+    REFERENCES [dbo].[Products] ([ProductID])
+    ON DELETE SET NULL;
+    PRINT '  - FK_Orders_Products created'
+END
+GO
+
+-- Orders -> OrderStatuses
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Orders_OrderStatuses')
+BEGIN
+    ALTER TABLE [dbo].[Orders] WITH CHECK 
+    ADD CONSTRAINT [FK_Orders_OrderStatuses] FOREIGN KEY([StatusID])
+    REFERENCES [dbo].[OrderStatuses] ([StatusID]);
+    PRINT '  - FK_Orders_OrderStatuses created'
+END
+GO
+
+-- Orders -> Tailors
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Orders_Tailors')
+BEGIN
+    ALTER TABLE [dbo].[Orders] WITH CHECK 
+    ADD CONSTRAINT [FK_Orders_Tailors] FOREIGN KEY([TailorID])
+    REFERENCES [dbo].[Tailors] ([TailorID])
+    ON DELETE SET NULL;
+    PRINT '  - FK_Orders_Tailors created'
+END
+GO
+
+PRINT '  - All foreign key constraints restored'
+GO
+
+-- ============================================================================
+-- STEP 5: MOVE NONCLUSTERED INDEXES TO INDEXES_FG
+-- ============================================================================
+PRINT '
+Step 5: Moving nonclustered indexes to INDEXES_FG...'
+GO
+
+-- 5.1. CashRegister indexes
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CashRegister_PaymentDate')
+    DROP INDEX [IX_CashRegister_PaymentDate] ON [dbo].[CashRegister];
+GO
+
+CREATE NONCLUSTERED INDEX [IX_CashRegister_PaymentDate] 
+ON [dbo].[CashRegister]([PaymentDate] ASC)
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, 
+      DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
+ON [INDEXES_FG];
+GO
+
+-- 5.2. Orders indexes
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Orders_CompletionDate')
+    DROP INDEX [IX_Orders_CompletionDate] ON [dbo].[Orders];
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Orders_CompletionDate] 
+ON [dbo].[Orders]([CompletionDate] ASC)
+ON [INDEXES_FG];
+GO
+
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Orders_CustomerID')
+    DROP INDEX [IX_Orders_CustomerID] ON [dbo].[Orders];
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Orders_CustomerID] 
+ON [dbo].[Orders]([CustomerID] ASC)
+ON [INDEXES_FG];
+GO
+
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Orders_OrderDate')
+    DROP INDEX [IX_Orders_OrderDate] ON [dbo].[Orders];
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Orders_OrderDate] 
+ON [dbo].[Orders]([OrderDate] ASC)
+ON [INDEXES_FG];
+GO
+
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Orders_ProductID')
+    DROP INDEX [IX_Orders_ProductID] ON [dbo].[Orders];
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Orders_ProductID] 
+ON [dbo].[Orders]([ProductID] ASC)
+ON [INDEXES_FG];
+GO
+
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Orders_StatusID')
+    DROP INDEX [IX_Orders_StatusID] ON [dbo].[Orders];
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Orders_StatusID] 
+ON [dbo].[Orders]([StatusID] ASC)
+ON [INDEXES_FG];
+GO
+
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Orders_TailorID')
+    DROP INDEX [IX_Orders_TailorID] ON [dbo].[Orders];
+GO
+
+CREATE NONCLUSTERED INDEX [IX_Orders_TailorID] 
+ON [dbo].[Orders]([TailorID] ASC)
+ON [INDEXES_FG];
+GO
+
+PRINT '  - All nonclustered indexes moved to INDEXES_FG'
+GO
+
+-- ============================================================================
+-- STEP 6: VERIFY RESULTS
+-- ============================================================================
+PRINT '
+Step 6: Verifying filegroup distribution...'
+GO
+
+SELECT 
+    OBJECT_NAME(i.object_id) AS TableName,
+    i.name AS IndexName,
+    i.type_desc AS IndexType,
+    fg.name AS FileGroupName,
+    p.[rows] AS [RowCount]
+FROM sys.indexes i
+INNER JOIN sys.filegroups fg ON i.data_space_id = fg.data_space_id
+INNER JOIN sys.partitions p ON i.object_id = p.object_id AND i.index_id = p.index_id
+WHERE OBJECT_NAME(i.object_id) IN (
+    'Orders', 'OrderCosts', 'OrderComplications', 'OrderFabrics', 
+    'CashRegister', 'OrderLogs'
+)
+ORDER BY fg.name, OBJECT_NAME(i.object_id);
+GO
+
+-- Summary by filegroup
+SELECT 
+    fg.name AS FileGroupName,
+    COUNT(DISTINCT OBJECT_NAME(i.object_id)) AS TableCount,
+    COUNT(i.name) AS IndexCount,
+    SUM(p.[rows]) AS TotalRows
+FROM sys.filegroups fg
+INNER JOIN sys.indexes i ON fg.data_space_id = i.data_space_id
+INNER JOIN sys.partitions p ON i.object_id = p.object_id AND i.index_id = p.index_id
+GROUP BY fg.name
+ORDER BY fg.name;
+GO
+
+-- ============================================================================
+-- STEP 7: PARTIAL BACKUP BY FILEGROUP
+-- ============================================================================
+PRINT '
+Step 7: Creating partial backups...'
+GO
+
+-- Create directory for partial backups (if needed)
+EXEC xp_create_subdir 'C:\CP\Backups\Atelier\Partial';
+GO
+
+-- 7.1. Backup ORDERS_FG
+BACKUP DATABASE [Atelier]
+FILEGROUP = 'ORDERS_FG'
+TO DISK = N'C:\CP\Backups\Atelier\Partial\Atelier_ORDERS_FG.bak'
+WITH 
+    FORMAT,
+    INIT,
+    NAME = N'Atelier-ORDERS_FG Partial Backup',
+    COMPRESSION,
+    STATS = 10;
+GO
+
+PRINT '  - Partial backup of ORDERS_FG created'
+GO
+
+-- 7.2. Backup LOGS_FG
+BACKUP DATABASE [Atelier]
+FILEGROUP = 'LOGS_FG'
+TO DISK = N'C:\CP\Backups\Atelier\Partial\Atelier_LOGS_FG.bak'
+WITH 
+    FORMAT,
+    INIT,
+    NAME = N'Atelier-LOGS_FG Partial Backup',
+    COMPRESSION,
+    STATS = 10;
+GO
+
+PRINT '  - Partial backup of LOGS_FG created'
+GO
+
+-- ============================================================================
+-- FINAL REPORT
+-- ============================================================================
+PRINT '
+============================================================================
+STAGE 2 COMPLETED SUCCESSFULLY!
+============================================================================
+
+CREATED:
+  - 4 filegroups (PRIMARY, ORDERS_FG, LOGS_FG, INDEXES_FG)
+  - 5 tables moved to ORDERS_FG
+  - 1 table moved to LOGS_FG
+  - 7 nonclustered indexes moved to INDEXES_FG
+  - Partial backups created
+
+DISTRIBUTION:
+  PRIMARY:    Reference tables (Categories, Customers, Products, etc.)
+  ORDERS_FG:  Transactional tables (Orders, OrderCosts, etc.)
+  LOGS_FG:    Audit logs (OrderLogs)
+  INDEXES_FG: Nonclustered indexes
+
+BENEFITS:
+  - Improved performance (indexes separated from data)
+  - Fast partial restore capability
+  - Can place on different disks
+  - Simplified database growth management
+
+NEXT STAGE: Triggers, Views, Stored Procedures, and Functions
+============================================================================
+'
+GO
+
+
+USE [Atelier]
+GO
+
+-- Detailed view
+SELECT 
+    OBJECT_NAME(i.object_id) AS TableName,
+    i.name AS IndexName,
+    i.type_desc AS IndexType,
+    fg.name AS FileGroupName
+FROM sys.indexes i
+INNER JOIN sys.filegroups fg ON i.data_space_id = fg.data_space_id
+WHERE OBJECT_NAME(i.object_id) IN (
+    'Orders', 'OrderCosts', 'OrderComplications', 'OrderFabrics', 
+    'CashRegister', 'OrderLogs',
+    'Categories', 'Customers', 'Products', 'Tailors', 'Fabrics'
+)
+ORDER BY fg.name, OBJECT_NAME(i.object_id), i.index_id;
+GO
+
+
+USE Atelier;
+GO
+
+/* ============================================================
+   3.1. TRIGGERS
+   ============================================================ */
+
+---------------------------------------------------------------
+-- Trigger: Automatic status update when order is fully paid
+---------------------------------------------------------------
+CREATE TRIGGER trg_AutoCompleteOrder
+ON dbo.CashRegister
+AFTER INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE o
+    SET o.StatusID = 3   -- Completed
+    FROM Orders o
+    INNER JOIN inserted i ON o.OrderID = i.OrderID
+    INNER JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    WHERE (oc.BaseCost + oc.ComplicationCost + oc.FabricCost + oc.UrgencyCost) <=
+          (SELECT SUM(Amount) FROM CashRegister WHERE OrderID = o.OrderID);
+END;
+GO
+
+---------------------------------------------------------------
+-- Trigger: Prevent deleting customers with active orders
+---------------------------------------------------------------
+CREATE TRIGGER trg_PreventCustomerDelete
+ON dbo.Customers
+INSTEAD OF DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM deleted d
+        JOIN Orders o ON d.CustomerID = o.CustomerID
+        WHERE o.StatusID IN (1, 2) -- Active statuses
+    )
+    BEGIN
+        RAISERROR('Cannot delete customer with active orders!', 16, 1);
+        RETURN;
+    END;
+
+    DELETE FROM Customers
+    WHERE CustomerID IN (SELECT CustomerID FROM deleted);
+END;
+GO
+
+---------------------------------------------------------------
+-- Trigger: Automatically fill completion date
+---------------------------------------------------------------
+CREATE TRIGGER trg_SetCompletionDate
+ON dbo.Orders
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE o
+    SET CompletionDate = GETDATE()
+    FROM Orders o
+    INNER JOIN inserted i ON o.OrderID = i.OrderID
+    INNER JOIN deleted d ON o.OrderID = d.OrderID
+    WHERE i.StatusID = 3      -- Completed
+      AND d.StatusID <> 3
+      AND o.CompletionDate IS NULL;
+END;
+GO
+
+---------------------------------------------------------------
+-- Trigger: Orders audit log
+---------------------------------------------------------------
+CREATE TRIGGER trg_Orders_Audit
+ON dbo.Orders
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO dbo.OrderLogs (OrderID, OperationType, OperationDate, UserName)
+    SELECT 
+        COALESCE(i.OrderID, d.OrderID),
+        CASE 
+            WHEN i.OrderID IS NOT NULL AND d.OrderID IS NULL THEN 'INSERT'
+            WHEN i.OrderID IS NOT NULL AND d.OrderID IS NOT NULL THEN 'UPDATE'
+            WHEN i.OrderID IS NULL AND d.OrderID IS NOT NULL THEN 'DELETE'
+        END,
+        GETDATE(),
+        ORIGINAL_LOGIN()
+    FROM inserted i
+    FULL JOIN deleted d ON i.OrderID = d.OrderID;
+END;
+GO
+
+---------------------------------------------------------------
+-- Trigger: Check fabric stock before fabric allocation
+---------------------------------------------------------------
+CREATE TRIGGER trg_CheckFabricStock
+ON dbo.OrderFabrics
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN Fabrics f ON i.FabricID = f.FabricID
+        WHERE i.FabricQuantity > f.Quantity
+    )
+    BEGIN
+        RAISERROR('Not enough fabric in stock!', 16, 1);
+        RETURN;
+    END;
+
+    UPDATE f
+    SET f.Quantity = f.Quantity - i.FabricQuantity
+    FROM Fabrics f
+    JOIN inserted i ON f.FabricID = i.FabricID;
+
+    INSERT INTO OrderFabrics (OrderID, FabricID, FabricQuantity)
+    SELECT OrderID, FabricID, FabricQuantity
+    FROM inserted;
+END;
+GO
+
+CREATE TRIGGER trg_PreventCompleteUnpaidOrder
+ON dbo.Orders
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN deleted d ON i.OrderID = d.OrderID
+        WHERE i.StatusID = 3 
+          AND d.StatusID <> 3
+          AND dbo.fn_GetOrderTotalCost(i.OrderID) > 
+              (SELECT ISNULL(SUM(Amount), 0) 
+               FROM CashRegister 
+               WHERE OrderID = i.OrderID)
+    )
+    BEGIN
+        RAISERROR('Cannot complete unpaid order!', 16, 1);
+        ROLLBACK TRANSACTION;
+    END
+END;
+GO
+
+
+
+/* ============================================================
+   3.2. VIEWS
+   ============================================================ */
+
+---------------------------------------------------------------
+-- View: Revenue report
+---------------------------------------------------------------
+CREATE VIEW vw_RevenueReport
+AS
+SELECT 
+    YEAR(cr.PaymentDate) AS Year,
+    MONTH(cr.PaymentDate) AS Month,
+    DATENAME(MONTH, cr.PaymentDate) AS MonthName,
+    COUNT(DISTINCT cr.OrderID) AS OrdersCount,
+    SUM(cr.Amount) AS TotalRevenue,
+    AVG(cr.Amount) AS AvgOrderAmount
+FROM CashRegister cr
+GROUP BY YEAR(cr.PaymentDate), MONTH(cr.PaymentDate), DATENAME(MONTH, cr.PaymentDate);
+GO
+
+---------------------------------------------------------------
+-- View: Tailor workload
+---------------------------------------------------------------
+CREATE VIEW vw_TailorWorkload
+AS
+SELECT 
+    t.TailorID,
+    t.FullName,
+    c.CategoryName,
+    COUNT(o.OrderID) AS ActiveOrders,
+    SUM(CASE WHEN o.StatusID = 3 THEN 1 ELSE 0 END) AS CompletedOrders,
+    AVG(DATEDIFF(DAY, o.OrderDate, COALESCE(o.CompletionDate, GETDATE()))) AS AvgDaysToComplete
+FROM Tailors t
+LEFT JOIN Orders o ON t.TailorID = o.TailorID
+LEFT JOIN Categories c ON t.CategoryID = c.CategoryID
+GROUP BY t.TailorID, t.FullName, c.CategoryName;
+GO
+
+---------------------------------------------------------------
+-- View: Fabric inventory with warnings
+---------------------------------------------------------------
+CREATE VIEW vw_FabricInventory
+AS
+SELECT 
+    f.FabricID,
+    f.FabricName,
+    ft.FabricTypeName,
+    f.Quantity,
+    f.Unit,
+    f.Price,
+    CASE 
+        WHEN f.Quantity < 10 THEN 'Critical stock'
+        WHEN f.Quantity < 50 THEN 'Low stock'
+        ELSE 'Normal stock'
+    END AS StockStatus
+FROM Fabrics f
+JOIN FabricTypes ft ON f.FabricTypeID = ft.FabricTypeID;
+GO
+
+---------------------------------------------------------------
+-- View: Detailed order information
+---------------------------------------------------------------
+CREATE VIEW vw_OrderDetails
+AS
+SELECT 
+    o.OrderID,
+    o.OrderDate,
+    c.CustomerName,
+    c.Phone,
+    t.FullName AS TailorName,
+    p.ProductName,
+    os.StatusName,
+    oc.BaseCost,
+    oc.ComplicationCost,
+    oc.FabricCost,
+    oc.UrgencyCost,
+    (oc.BaseCost + oc.ComplicationCost + oc.FabricCost + oc.UrgencyCost) AS TotalCost,
+    ISNULL(SUM(cr.Amount), 0) AS PaidAmount,
+    (oc.BaseCost + oc.ComplicationCost + oc.FabricCost + oc.UrgencyCost) - 
+        ISNULL(SUM(cr.Amount), 0) AS RemainingAmount
+FROM Orders o
+LEFT JOIN Customers c ON o.CustomerID = c.CustomerID
+LEFT JOIN Tailors t ON o.TailorID = t.TailorID
+LEFT JOIN Products p ON o.ProductID = p.ProductID
+LEFT JOIN OrderStatuses os ON o.StatusID = os.StatusID
+LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+LEFT JOIN CashRegister cr ON o.OrderID = cr.OrderID
+GROUP BY o.OrderID, o.OrderDate, c.CustomerName, c.Phone, t.FullName,
+         p.ProductName, os.StatusName, oc.BaseCost, oc.ComplicationCost,
+         oc.FabricCost, oc.UrgencyCost;
+GO
+
+---------------------------------------------------------------
+-- View: Cashier sees only paid orders
+---------------------------------------------------------------
+CREATE VIEW vw_CashierOrders
+AS
+SELECT 
+    o.OrderID,
+    o.OrderDate,
+    o.CustomerID,
+    c.CustomerName,
+    cr.PaymentDate,
+    cr.Amount
+FROM Orders o
+JOIN CashRegister cr ON o.OrderID = cr.OrderID
+JOIN Customers c ON o.CustomerID = c.CustomerID;
+GO
+
+---------------------------------------------------------------
+-- View: Tailor’s own orders
+---------------------------------------------------------------
+CREATE VIEW vw_TailorOrders
+AS
+SELECT
+    o.OrderID,
+    o.OrderDate,
+    t.FullName AS TailorName,
+    c.CustomerName,
+    o.StatusID
+FROM Orders o
+JOIN Tailors t ON o.TailorID = t.TailorID
+JOIN Customers c ON o.CustomerID = c.CustomerID;
+GO
+
+
+
+/* ============================================================
+   3.3. STORED PROCEDURES
+   ============================================================ */
+
+---------------------------------------------------------------
+-- Procedure: Create basic order
+---------------------------------------------------------------
+CREATE PROCEDURE sp_CreateOrder
+    @OrderDate DATE,
+    @TailorID INT,
+    @ProductID INT,
+    @CustomerID INT,
+    @UrgencyPercentage DECIMAL(5,2),
+    @Language NVARCHAR(50),
+    @StatusID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM Tailors WHERE TailorID = @TailorID)
+    BEGIN
+        RAISERROR('Tailor not found!', 16, 1);
+        RETURN;
+    END;
+
+    DECLARE @NewOrderID INT;
+    SELECT @NewOrderID = ISNULL(MAX(OrderID), 0) + 1 FROM Orders;
+
+    INSERT INTO Orders (OrderID, OrderDate, TailorID, ProductID, CustomerID, 
+                        UrgencyPercentage, Language, StatusID)
+    VALUES (@NewOrderID, @OrderDate, @TailorID, @ProductID, @CustomerID,
+            @UrgencyPercentage, @Language, @StatusID);
+
+    SELECT @NewOrderID AS CreatedOrderID;
+END;
+GO
+
+---------------------------------------------------------------
+-- Procedure: Calculate cost
+---------------------------------------------------------------
+CREATE PROCEDURE sp_CalculateOrderCost
+    @OrderID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE 
+        @BaseCost DECIMAL(10,2),
+        @CompCost DECIMAL(10,2),
+        @FabricCost DECIMAL(10,2),
+        @UrgencyCost DECIMAL(10,2),
+        @UrgencyPercent DECIMAL(5,2);
+
+    SELECT @BaseCost = p.BasePrice
+    FROM Orders o
+    JOIN Products p ON o.ProductID = p.ProductID
+    WHERE o.OrderID = @OrderID;
+
+    SELECT @CompCost = ISNULL(SUM(c.PricePerElement * oc.ElementCount), 0)
+    FROM OrderComplications oc
+    JOIN Complications c ON oc.ComplicationID = c.ComplicationID
+    WHERE oc.OrderID = @OrderID;
+
+    SELECT @FabricCost = ISNULL(SUM(f.Price * ofb.FabricQuantity), 0)
+    FROM OrderFabrics ofb
+    JOIN Fabrics f ON ofb.FabricID = f.FabricID
+    WHERE ofb.OrderID = @OrderID;
+
+    SELECT @UrgencyPercent = UrgencyPercentage
+    FROM Orders
+    WHERE OrderID = @OrderID;
+
+    SET @UrgencyCost = (@BaseCost + @CompCost + @FabricCost) * (@UrgencyPercent / 100.0);
+
+    IF EXISTS (SELECT 1 FROM OrderCosts WHERE OrderID = @OrderID)
+    BEGIN
+        UPDATE OrderCosts
+        SET BaseCost = @BaseCost,
+            ComplicationCost = @CompCost,
+            FabricCost = @FabricCost,
+            UrgencyCost = @UrgencyCost
+        WHERE OrderID = @OrderID;
+    END
+    ELSE
+    BEGIN
+        INSERT INTO OrderCosts (OrderID, BaseCost, ComplicationCost, FabricCost, UrgencyCost)
+        VALUES (@OrderID, @BaseCost, @CompCost, @FabricCost, @UrgencyCost);
+    END;
+END;
+GO
+
+---------------------------------------------------------------
+-- Procedure: Add a payment with validations
+---------------------------------------------------------------
+CREATE PROCEDURE sp_AddPayment
+    @OrderID INT,
+    @PaymentDate DATE,
+    @Amount DECIMAL(10,2)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF NOT EXISTS (SELECT 1 FROM Orders WHERE OrderID = @OrderID)
+        BEGIN
+            RAISERROR('Order not found!', 16, 1);
+            RETURN;
+        END;
+
+        DECLARE @TotalCost DECIMAL(10,2);
+        SELECT @TotalCost = BaseCost + ComplicationCost + FabricCost + UrgencyCost
+        FROM OrderCosts
+        WHERE OrderID = @OrderID;
+
+        DECLARE @PaidAmount DECIMAL(10,2);
+        SELECT @PaidAmount = ISNULL(SUM(Amount), 0)
+        FROM CashRegister
+        WHERE OrderID = @OrderID;
+
+        IF (@PaidAmount + @Amount) > @TotalCost
+        BEGIN
+            RAISERROR('Payment exceeds order total!', 16, 1);
+            RETURN;
+        END;
+
+        INSERT INTO CashRegister (OrderID, PaymentDate, Amount)
+        VALUES (@OrderID, @PaymentDate, @Amount);
+
+        COMMIT TRANSACTION;
+
+        SELECT 'Payment successfully added' AS Message,
+               @Amount AS PaymentAmount,
+               @TotalCost AS TotalCost,
+               (@PaidAmount + @Amount) AS TotalPaid,
+               (@TotalCost - @PaidAmount - @Amount) AS RemainingAmount;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH;
+END;
+GO
+
+---------------------------------------------------------------
+-- Procedure: Tailor performance report
+---------------------------------------------------------------
+CREATE PROCEDURE sp_TailorReport
+    @TailorID INT,
+    @StartDate DATE = NULL,
+    @EndDate DATE = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @StartDate IS NULL SET @StartDate = DATEADD(MONTH, -1, GETDATE());
+    IF @EndDate IS NULL SET @EndDate = GETDATE();
+
+    SELECT 
+        t.FullName AS TailorName,
+        COUNT(o.OrderID) AS TotalOrders,
+        SUM(CASE WHEN o.StatusID = 3 THEN 1 ELSE 0 END) AS CompletedOrders,
+        SUM(CASE WHEN o.StatusID IN (1,2) THEN 1 ELSE 0 END) AS ActiveOrders,
+        SUM(oc.BaseCost + oc.ComplicationCost + oc.FabricCost + oc.UrgencyCost) AS TotalRevenue,
+        AVG(DATEDIFF(DAY, o.OrderDate, COALESCE(o.CompletionDate, GETDATE()))) AS AvgDaysToComplete
+    FROM Tailors t
+    LEFT JOIN Orders o ON t.TailorID = o.TailorID 
+        AND o.OrderDate BETWEEN @StartDate AND @EndDate
+    LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    WHERE t.TailorID = @TailorID
+    GROUP BY t.FullName;
+END;
+GO
+
+---------------------------------------------------------------
+-- Procedure: Find available tailors
+---------------------------------------------------------------
+CREATE PROCEDURE sp_FindAvailableTailors
+    @CategoryID INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        t.TailorID,
+        t.FullName,
+        c.CategoryName,
+        COUNT(o.OrderID) AS CurrentOrders,
+        CASE 
+            WHEN COUNT(o.OrderID) = 0 THEN 'Free'
+            WHEN COUNT(o.OrderID) <= 3 THEN 'Available'
+            ELSE 'Busy'
+        END AS AvailabilityStatus
+    FROM Tailors t
+    LEFT JOIN Categories c ON t.CategoryID = c.CategoryID
+    LEFT JOIN Orders o ON t.TailorID = o.TailorID 
+        AND o.StatusID IN (1, 2)
+    WHERE (@CategoryID IS NULL OR t.CategoryID = @CategoryID)
+    GROUP BY t.TailorID, t.FullName, c.CategoryName
+    HAVING COUNT(o.OrderID) < 5
+    ORDER BY COUNT(o.OrderID);
+END;
+GO
+
+---------------------------------------------------------------
+-- Procedure: Full-order creation with fabric & complications
+---------------------------------------------------------------
+CREATE PROCEDURE sp_CreateFullOrder
+    @OrderDate DATE,
+    @TailorID INT,
+    @ProductID INT,
+    @CustomerID INT,
+    @UrgencyPercentage DECIMAL(5,2),
+    @Language NVARCHAR(50),
+    @StatusID INT,
+    @FabricList NVARCHAR(MAX),
+    @ComplicationList NVARCHAR(MAX) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        DECLARE @NewOrderID INT;
+
+        EXEC sp_CreateOrder 
+            @OrderDate, @TailorID, @ProductID, @CustomerID,
+            @UrgencyPercentage, @Language, @StatusID;
+
+        SELECT @NewOrderID = MAX(OrderID) FROM Orders;
+
+        INSERT INTO OrderFabrics (OrderID, FabricID, FabricQuantity)
+        SELECT 
+            @NewOrderID,
+            JSON_VALUE(value, '$.FabricID'),
+            JSON_VALUE(value, '$.Quantity')
+        FROM OPENJSON(@FabricList);
+
+        IF @ComplicationList IS NOT NULL
+        BEGIN
+            INSERT INTO OrderComplications (OrderID, ComplicationID, ElementCount)
+            SELECT 
+                @NewOrderID,
+                JSON_VALUE(value, '$.ComplicationID'),
+                JSON_VALUE(value, '$.ElementCount')
+            FROM OPENJSON(@ComplicationList);
+        END;
+
+        EXEC sp_CalculateOrderCost @NewOrderID;
+
+        COMMIT TRANSACTION;
+
+        SELECT 
+            @NewOrderID AS OrderID,
+            dbo.fn_GetOrderTotalCost(@NewOrderID) AS TotalCost,
+            'Order successfully created' AS Message;
+
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        RAISERROR(@ErrorMessage, 16, 1);
+    END CATCH;
+END;
+GO
+
+
+
+/* ============================================================
+   3.4. FUNCTIONS
+   ============================================================ */
+
+---------------------------------------------------------------
+-- Function: Calculate total order cost
+---------------------------------------------------------------
+CREATE FUNCTION fn_GetOrderTotalCost
+(
+    @OrderID INT
+)
+RETURNS DECIMAL(10,2)
+AS
+BEGIN
+    DECLARE @TotalCost DECIMAL(10,2);
+
+    SELECT @TotalCost = BaseCost + ComplicationCost + FabricCost + UrgencyCost
+    FROM OrderCosts
+    WHERE OrderID = @OrderID;
+
+    RETURN ISNULL(@TotalCost, 0);
+END;
+GO
+
+---------------------------------------------------------------
+-- Function: Get payment status
+---------------------------------------------------------------
+CREATE FUNCTION fn_GetPaymentStatus
+(
+    @OrderID INT
+)
+RETURNS NVARCHAR(50)
+AS
+BEGIN
+    DECLARE @Status NVARCHAR(50);
+    DECLARE @TotalCost DECIMAL(10,2);
+    DECLARE @PaidAmount DECIMAL(10,2);
+
+    SELECT @TotalCost = dbo.fn_GetOrderTotalCost(@OrderID);
+
+    SELECT @PaidAmount = ISNULL(SUM(Amount), 0)
+    FROM CashRegister
+    WHERE OrderID = @OrderID;
+
+    SET @Status = CASE
+        WHEN @PaidAmount = 0 THEN 'Not paid'
+        WHEN @PaidAmount < @TotalCost THEN 'Partially paid'
+        WHEN @PaidAmount >= @TotalCost THEN 'Fully paid'
+        ELSE 'Unknown'
+    END;
+
+    RETURN @Status;
+END;
+GO
+
+---------------------------------------------------------------
+-- Function: Customer order history (table function)
+---------------------------------------------------------------
+CREATE FUNCTION fn_GetCustomerOrderHistory
+(
+    @CustomerID INT
+)
+RETURNS TABLE
+AS
+RETURN
+(
+    SELECT 
+        o.OrderID,
+        o.OrderDate,
+        p.ProductName,
+        os.StatusName,
+        dbo.fn_GetOrderTotalCost(o.OrderID) AS TotalCost,
+        dbo.fn_GetPaymentStatus(o.OrderID) AS PaymentStatus
+    FROM Orders o
+    JOIN Products p ON o.ProductID = p.ProductID
+    JOIN OrderStatuses os ON o.StatusID = os.StatusID
+    WHERE o.CustomerID = @CustomerID
+);
+GO
+
+---------------------------------------------------------------
+-- Function: Check tailor availability (busy/not busy)
+---------------------------------------------------------------
+CREATE FUNCTION fn_CheckTailorAvailability
+(
+    @TailorID INT
+)
+RETURNS BIT
+AS
+BEGIN
+    DECLARE @IsBusy BIT = 0;
+
+    IF EXISTS (
+        SELECT 1
+        FROM Orders
+        WHERE TailorID = @TailorID
+          AND StatusID <> 3
+    )
+        SET @IsBusy = 1;
+
+    RETURN @IsBusy;
+END;
+GO
+
+
+-- ============================================================================
+-- STAGE 4: DYNAMIC DATA MASKING (DDM) & TRANSPARENT DATA ENCRYPTION (TDE)
+-- Course Project - Database Security System
+-- ============================================================================
+
+USE [Atelier]
+GO
+
+PRINT '
+============================================================================
+STAGE 4: DATA PROTECTION
+============================================================================
+Will implement:
+  1. Dynamic Data Masking (DDM) for sensitive customer data
+  2. Transparent Data Encryption (TDE) for data-at-rest protection
+============================================================================
+'
+GO
+
+-- ============================================================================
+-- PART 1: DYNAMIC DATA MASKING (DDM)
+-- ============================================================================
+
+PRINT '
+PART 1: Applying Dynamic Data Masking...'
+GO
+
+-- ============================================================================
+-- 1.1. Mask Customer Phone (show only last 4 digits)
+-- ============================================================================
+-- Remove any existing masking first
+DECLARE @sql NVARCHAR(MAX);
+
+-- Check if masking exists and remove it
+IF EXISTS (
+    SELECT 1 FROM sys.masked_columns 
+    WHERE object_id = OBJECT_ID('Customers') 
+    AND name = 'Phone'
+)
+BEGIN
+    ALTER TABLE [dbo].[Customers] ALTER COLUMN [Phone] DROP MASKED;
+    PRINT '  - Removed existing mask from Phone column'
+END
+GO
+
+-- Apply new mask
+ALTER TABLE [dbo].[Customers] 
+ALTER COLUMN [Phone] ADD MASKED WITH (FUNCTION = 'partial(0, "XXX-XX-", 4)');
+GO
+
+PRINT '  ✓ Phone masked: shows only last 4 digits (e.g., XXX-XX-1234)'
+GO
+
+-- ============================================================================
+-- 1.2. Mask Customer Address (completely hidden)
+-- ============================================================================
+IF EXISTS (
+    SELECT 1 FROM sys.masked_columns 
+    WHERE object_id = OBJECT_ID('Customers') 
+    AND name = 'Address'
+)
+BEGIN
+    ALTER TABLE [dbo].[Customers] ALTER COLUMN [Address] DROP MASKED;
+END
+GO
+
+ALTER TABLE [dbo].[Customers] 
+ALTER COLUMN [Address] ADD MASKED WITH (FUNCTION = 'default()');
+GO
+
+PRINT '  ✓ Address masked: completely hidden (shows NULL/XXXX)'
+GO
+
+-- ============================================================================
+-- 1.3. Mask Customer Name (show only first letter)
+-- ============================================================================
+IF EXISTS (
+    SELECT 1 FROM sys.masked_columns 
+    WHERE object_id = OBJECT_ID('Customers') 
+    AND name = 'CustomerName'
+)
+BEGIN
+    ALTER TABLE [dbo].[Customers] ALTER COLUMN [CustomerName] DROP MASKED;
+END
+GO
+
+ALTER TABLE [dbo].[Customers] 
+ALTER COLUMN [CustomerName] ADD MASKED WITH (FUNCTION = 'partial(1, "XXX", 0)');
+GO
+
+PRINT '  ✓ CustomerName masked: shows only first letter (e.g., JXXX)'
+GO
+
+-- ============================================================================
+-- 1.4. Grant UNMASK permission to privileged users
+-- ============================================================================
+
+-- Admins and managers see unmasked data
+IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'atelier_admin')
+BEGIN
+    GRANT UNMASK TO [atelier_admin];
+    PRINT '  ✓ UNMASK granted to atelier_admin'
+END
+GO
+
+IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'manager')
+BEGIN
+    GRANT UNMASK TO [manager];
+    PRINT '  ✓ UNMASK granted to manager'
+END
+GO
+
+-- ============================================================================
+-- 1.5. Verify DDM configuration
+-- ============================================================================
+PRINT '
+  Verification: Masked columns in Customers table'
+GO
+
+SELECT 
+    c.name AS ColumnName,
+    t.name AS DataType,
+    mc.masking_function AS MaskingFunction,
+    CASE WHEN mc.column_id IS NOT NULL THEN 'YES' ELSE 'NO' END AS IsMasked
+FROM sys.columns c
+JOIN sys.types t ON c.user_type_id = t.user_type_id
+LEFT JOIN sys.masked_columns mc ON c.object_id = mc.object_id 
+    AND c.column_id = mc.column_id
+WHERE c.object_id = OBJECT_ID('Customers')
+ORDER BY c.column_id;
+GO
+
+-- ============================================================================
+-- 1.6. Test DDM (demonstration query)
+-- ============================================================================
+PRINT '
+  Note: To test DDM, connect as "cashier" or "tailor_user"
+  They will see masked data, while admin/manager see real data.
+'
+GO
+
+/*
+-- Example test (run as different users):
+
+-- As admin (sees real data):
+EXECUTE AS USER = 'atelier_admin';
+SELECT TOP 3 CustomerName, Phone, Address FROM Customers;
+REVERT;
+
+-- As cashier (sees masked data):
+EXECUTE AS USER = 'cashier';
+SELECT TOP 3 CustomerName, Phone, Address FROM Customers;
+REVERT;
+*/
+
+-- ============================================================================
+-- PART 2: TRANSPARENT DATA ENCRYPTION (TDE)
+-- ============================================================================
+
+USE [master]
+GO
+
+PRINT '
+============================================================================
+PART 2: Enabling Transparent Data Encryption (TDE)...
+============================================================================
+'
+GO
+
+-- ============================================================================
+-- 2.1. Create Database Master Key (if not exists)
+-- ============================================================================
+IF NOT EXISTS (SELECT 1 FROM sys.symmetric_keys WHERE name = '##MS_DatabaseMasterKey##')
+BEGIN
+    CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'StrongP@ssw0rd2025!Atelier';
+    PRINT '  ✓ Database Master Key created'
+END
+ELSE
+    PRINT '  - Database Master Key already exists (skipping)'
+GO
+
+-- ============================================================================
+-- 2.2. Create Certificate for TDE (if not exists)
+-- ============================================================================
+IF NOT EXISTS (SELECT 1 FROM sys.certificates WHERE name = 'TDE_Cert_Atelier')
+BEGIN
+    CREATE CERTIFICATE TDE_Cert_Atelier
+    WITH SUBJECT = 'Atelier Database TDE Certificate',
+         EXPIRY_DATE = '2030-12-31';
+    PRINT '  ✓ TDE Certificate created (valid until 2030-12-31)'
+END
+ELSE
+    PRINT '  - TDE Certificate already exists (skipping)'
+GO
+
+-- ============================================================================
+-- 2.3. Backup Certificate (CRITICAL for recovery!)
+-- ============================================================================
+-- Create backup directory if needed
+EXEC xp_create_subdir 'C:\CP\Backups\Certificates';
+GO
+
+DECLARE @certBackupPath NVARCHAR(500) = 'C:\CP\Backups\Certificates\TDE_Cert_Atelier.cer';
+DECLARE @keyBackupPath NVARCHAR(500) = 'C:\CP\Backups\Certificates\TDE_Cert_Atelier.key';
+
+-- Check if backup already exists
+IF NOT EXISTS (
+    SELECT 1 FROM sys.fn_get_audit_file(@certBackupPath, NULL, NULL)
+)
+BEGIN
+    BACKUP CERTIFICATE TDE_Cert_Atelier
+    TO FILE = 'C:\CP\Backups\Certificates\TDE_Cert_Atelier.cer'
+    WITH PRIVATE KEY (
+        FILE = 'C:\CP\Backups\Certificates\TDE_Cert_Atelier.key',
+        ENCRYPTION BY PASSWORD = 'CertP@ssw0rd2025!'
+    );
+    PRINT '  ✓ Certificate backed up to C:\CP\Backups\Certificates\'
+    PRINT '  ⚠ IMPORTANT: Store these files securely! Required for restore!'
+END
+GO
+
+-- ============================================================================
+-- 2.4. Create Database Encryption Key (DEK)
+-- ============================================================================
+USE [Atelier]
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.dm_database_encryption_keys WHERE database_id = DB_ID('Atelier'))
+BEGIN
+    CREATE DATABASE ENCRYPTION KEY
+    WITH ALGORITHM = AES_256
+    ENCRYPTION BY SERVER CERTIFICATE TDE_Cert_Atelier;
+    PRINT '  ✓ Database Encryption Key (DEK) created with AES-256'
+END
+ELSE
+    PRINT '  - Database Encryption Key already exists (skipping)'
+GO
+
+-- ============================================================================
+-- 2.5. Enable TDE
+-- ============================================================================
+USE [master]
+GO
+
+-- Check current encryption state
+DECLARE @isEncrypted BIT;
+SELECT @isEncrypted = is_encrypted 
+FROM sys.databases 
+WHERE name = 'Atelier';
+
+IF @isEncrypted = 0
+BEGIN
+    ALTER DATABASE [Atelier] SET ENCRYPTION ON;
+    PRINT '  ✓ TDE enabled for Atelier database'
+    PRINT '  ⏳ Encryption in progress... (may take a few minutes)'
+END
+ELSE
+    PRINT '  - TDE already enabled (skipping)'
+GO
+
+-- ============================================================================
+-- 2.6. Monitor encryption progress
+-- ============================================================================
+PRINT '
+  Monitoring encryption progress...'
+GO
+
+-- Wait a moment for encryption to start
+WAITFOR DELAY '00:00:03';
+GO
+
+SELECT 
+    db.name AS DatabaseName,
+    db.is_encrypted AS IsEncrypted,
+    dek.encryption_state AS EncryptionState,
+    CASE dek.encryption_state
+        WHEN 0 THEN 'No DEK present'
+        WHEN 1 THEN 'Unencrypted'
+        WHEN 2 THEN 'Encryption in progress'
+        WHEN 3 THEN 'Encrypted'
+        WHEN 4 THEN 'Key change in progress'
+        WHEN 5 THEN 'Decryption in progress'
+        WHEN 6 THEN 'Protection change in progress'
+    END AS EncryptionStateDesc,
+    dek.percent_complete AS PercentComplete,
+    dek.encryptor_type AS EncryptorType,
+    c.name AS CertificateName
+FROM sys.databases db
+LEFT JOIN sys.dm_database_encryption_keys dek ON db.database_id = dek.database_id
+LEFT JOIN sys.certificates c ON dek.encryptor_thumbprint = c.thumbprint
+WHERE db.name = 'Atelier';
+GO
+
+-- ============================================================================
+-- 2.7. Verify TDE is working
+-- ============================================================================
+PRINT '
+  Final verification of TDE status...'
+GO
+
+-- Wait for encryption to complete (if database is small, should be fast)
+DECLARE @encState INT = 2;
+DECLARE @attempts INT = 0;
+
+WHILE @encState = 2 AND @attempts < 10
+BEGIN
+    WAITFOR DELAY '00:00:05';
+    
+    SELECT @encState = encryption_state
+    FROM sys.dm_database_encryption_keys
+    WHERE database_id = DB_ID('Atelier');
+    
+    SET @attempts = @attempts + 1;
+    
+    IF @encState = 2
+        PRINT '  ... still encrypting (attempt ' + CAST(@attempts AS VARCHAR(2)) + '/10)';
+END
+GO
+
+-- Final status
+SELECT 
+    'Atelier' AS DatabaseName,
+    CASE 
+        WHEN is_encrypted = 1 THEN '✓ ENCRYPTED'
+        ELSE '✗ NOT ENCRYPTED'
+    END AS Status,
+    create_date AS CreatedDate,
+    compatibility_level AS CompatibilityLevel
+FROM sys.databases
+WHERE name = 'Atelier';
+GO
+
+-- ============================================================================
+-- PART 3: VERIFY ACCESS CONTROL WITH DDM
+-- ============================================================================
+
+USE [Atelier]
+GO
+
+PRINT '
+============================================================================
+PART 3: Access Control Verification
+============================================================================
+'
+GO
+
+-- Show who has UNMASK permission
+SELECT 
+    dp.name AS UserName,
+    dp.type_desc AS UserType,
+    CASE 
+        WHEN dp.name IN ('atelier_admin', 'manager') THEN 'Can see real data'
+        ELSE 'Sees masked data'
+    END AS DataVisibility
+FROM sys.database_principals dp
+WHERE dp.type IN ('S', 'U')  -- SQL users and Windows users
+    AND dp.name NOT LIKE 'db_%'
+    AND dp.name NOT IN ('guest', 'INFORMATION_SCHEMA', 'sys')
+ORDER BY dp.name;
+GO
+
+-- ============================================================================
+-- SUMMARY AND DOCUMENTATION
+-- ============================================================================
+
+PRINT '
+============================================================================
+✅ STAGE 4 COMPLETED SUCCESSFULLY!
+============================================================================
+
+IMPLEMENTED:
+
+1. Dynamic Data Masking (DDM):
+   ✓ Phone:        partial masking (XXX-XX-1234)
+   ✓ Address:      complete masking (default)
+   ✓ CustomerName: partial masking (first letter only)
+   ✓ Permissions:  admin & manager can UNMASK
+
+2. Transparent Data Encryption (TDE):
+   ✓ Master Key created
+   ✓ Certificate created & backed up
+   ✓ Database Encryption Key (DEK) with AES-256
+   ✓ TDE enabled and verified
+   ✓ Certificate backup saved to:
+     C:\CP\Backups\Certificates\
+
+SECURITY BENEFITS:
+  - Data-at-rest protection (TDE prevents file-level access)
+  - Sensitive data protection (DDM limits exposure to unauthorized users)
+  - Transparent to applications (no code changes needed)
+  - Compliant with data protection regulations
+
+⚠ CRITICAL REMINDERS:
+  1. Store certificate backups securely (required for restore!)
+  2. TDE encrypts data files, not backups (backup encryption is separate)
+  3. DDM does NOT prevent privileged users from seeing real data
+  4. Performance impact is minimal (<5% for TDE)
+
+📋 FOR COURSE PROJECT PRESENTATION:
+  1. Show masked data as different users (EXECUTE AS USER)
+  2. Demonstrate encryption_state = 3 (Encrypted)
+  3. Explain certificate backup importance
+  4. Show sys.masked_columns catalog view
+  5. Compare performance before/after TDE (optional)
+
+NEXT STAGE: Monitoring and Audit (Extended Events, SQL Server Audit)
+============================================================================
+'
+GO
+
+-- ============================================================================
+-- DEMONSTRATION QUERIES (for course project defense)
+-- ============================================================================
+
+/*
+-- Test 1: View as admin (unmasked)
+EXECUTE AS USER = 'atelier_admin';
+SELECT TOP 3 CustomerID, CustomerName, Phone, Address FROM Customers;
+REVERT;
+
+-- Test 2: View as cashier (masked)
+EXECUTE AS USER = 'cashier';
+SELECT TOP 3 CustomerID, CustomerName, Phone, Address FROM Customers;
+REVERT;
+
+-- Test 3: Check encryption status
+SELECT 
+    db_name(database_id) AS DatabaseName,
+    encryption_state_desc = 
+        CASE encryption_state
+            WHEN 0 THEN 'No DEK'
+            WHEN 1 THEN 'Unencrypted'
+            WHEN 2 THEN 'Encrypting...'
+            WHEN 3 THEN 'Encrypted ✓'
+            WHEN 4 THEN 'Key changing'
+            WHEN 5 THEN 'Decrypting'
+        END,
+    percent_complete,
+    key_algorithm,
+    key_length
+FROM sys.dm_database_encryption_keys;
+
+-- Test 4: Verify certificate
+USE master;
+SELECT 
+    name AS CertificateName,
+    subject,
+    start_date,
+    expiry_date,
+    DATEDIFF(DAY, GETDATE(), expiry_date) AS DaysUntilExpiry
+FROM sys.certificates
+WHERE name = 'TDE_Cert_Atelier';
+*/
+
+
+-- ============================================================================
+-- STAGE 5: MONITORING AND AUDIT (FINAL - SQL SERVER 2022)
+-- Database Security System - Atelier DB
+-- ============================================================================
+
+USE [master]
+GO
+
+PRINT '============================================================================'
+PRINT 'STAGE 5: MONITORING AND AUDIT'
+PRINT '============================================================================'
+PRINT 'Implementation:'
+PRINT '  1. SQL Server Audit for critical operations'
+PRINT '  2. Audit Specifications (Server + Database)'
+PRINT '  3. Extended Events for performance monitoring'
+PRINT '  4. Extended Events for failed login tracking'
+PRINT '============================================================================'
+GO
+
+-- ============================================================================
+-- 5.1. SQL SERVER AUDIT SETUP
+-- ============================================================================
+
+PRINT ''
+PRINT '--- 5.1. SQL SERVER AUDIT SETUP ---'
+GO
+
+-- Create audit directory
+DECLARE @AuditPath NVARCHAR(260) = N'C:\CP\Audit\Atelier';
+DECLARE @SQL NVARCHAR(MAX);
+
+-- Check if directory exists, create if not
+SET @SQL = N'EXEC xp_create_subdir ''' + @AuditPath + '''';
+BEGIN TRY
+    EXEC sp_executesql @SQL;
+    PRINT '✓ Audit directory created/verified: ' + @AuditPath;
+END TRY
+BEGIN CATCH
+    PRINT '⚠ Directory may already exist: ' + @AuditPath;
+END CATCH
+GO
+
+-- Drop existing audit objects (cleanup)
+USE [Atelier]
+GO
+
+IF EXISTS (SELECT 1 FROM sys.database_audit_specifications WHERE name = 'Atelier_DatabaseAudit_Spec')
+BEGIN
+    ALTER DATABASE AUDIT SPECIFICATION [Atelier_DatabaseAudit_Spec] WITH (STATE = OFF);
+    DROP DATABASE AUDIT SPECIFICATION [Atelier_DatabaseAudit_Spec];
+    PRINT '✓ Existing Database Audit Specification removed';
+END
+GO
+
+USE [master]
+GO
+
+IF EXISTS (SELECT 1 FROM sys.server_audit_specifications WHERE name = 'Atelier_ServerAudit_Spec')
+BEGIN
+    ALTER SERVER AUDIT SPECIFICATION [Atelier_ServerAudit_Spec] WITH (STATE = OFF);
+    DROP SERVER AUDIT SPECIFICATION [Atelier_ServerAudit_Spec];
+    PRINT '✓ Existing Server Audit Specification removed';
+END
+GO
+
+IF EXISTS (SELECT 1 FROM sys.server_audits WHERE name = 'Atelier_Server_Audit')
+BEGIN
+    ALTER SERVER AUDIT [Atelier_Server_Audit] WITH (STATE = OFF);
+    DROP SERVER AUDIT [Atelier_Server_Audit];
+    PRINT '✓ Existing Server Audit removed';
+END
+GO
+
+-- Create Server Audit (SQL Server 2022 compatible)
+CREATE SERVER AUDIT [Atelier_Server_Audit]
+TO FILE 
+(
+    FILEPATH = 'C:\CP\Audit\Atelier\',
+    MAXSIZE = 50 MB,              
+    MAX_ROLLOVER_FILES = 5,       
+    RESERVE_DISK_SPACE = OFF
+)
+WITH
+(
+    QUEUE_DELAY = 1000,           
+    ON_FAILURE = CONTINUE         
+);
+GO
+
+PRINT '✓ Server Audit created: Atelier_Server_Audit'
+GO
+
+-- Enable Server Audit
+ALTER SERVER AUDIT [Atelier_Server_Audit] WITH (STATE = ON);
+GO
+
+PRINT '✓ Server Audit enabled'
+GO
+
+-- ============================================================================
+-- 5.2. SERVER AUDIT SPECIFICATION
+-- ============================================================================
+
+CREATE SERVER AUDIT SPECIFICATION [Atelier_ServerAudit_Spec]
+FOR SERVER AUDIT [Atelier_Server_Audit]
+    ADD (FAILED_LOGIN_GROUP),                          
+    ADD (SUCCESSFUL_LOGIN_GROUP),                      
+    ADD (LOGOUT_GROUP),                                
+    ADD (SERVER_ROLE_MEMBER_CHANGE_GROUP),            
+    ADD (DATABASE_OBJECT_PERMISSION_CHANGE_GROUP)     
+WITH (STATE = ON);
+GO
+
+PRINT '✓ Server Audit Specification created and enabled'
+PRINT '  - Login/Logout monitoring'
+PRINT '  - Permission changes tracking'
+PRINT '  - Role membership changes'
+GO
+
+-- ============================================================================
+-- 5.3. DATABASE AUDIT SPECIFICATION
+-- ============================================================================
+
+USE [Atelier]
+GO
+
+CREATE DATABASE AUDIT SPECIFICATION [Atelier_DatabaseAudit_Spec]
+FOR SERVER AUDIT [Atelier_Server_Audit]
+    -- Critical tables: Orders and payments
+    ADD (INSERT, UPDATE, DELETE ON OBJECT::[dbo].[Orders] BY [public]),
+    ADD (INSERT, UPDATE, DELETE ON OBJECT::[dbo].[CashRegister] BY [public]),
+    ADD (UPDATE ON OBJECT::[dbo].[OrderCosts] BY [public]),
+    
+    -- Sensitive data: Customer information
+    ADD (SELECT, UPDATE, DELETE ON OBJECT::[dbo].[Customers] BY [public]),
+    
+    -- Financial data: Payment tracking
+    ADD (SELECT ON OBJECT::[dbo].[CashRegister] BY [cashier])
+WITH (STATE = ON);
+GO
+
+PRINT '✓ Database Audit Specification created and enabled'
+PRINT '  - Orders table (INSERT, UPDATE, DELETE)'
+PRINT '  - CashRegister table (all DML operations)'
+PRINT '  - Customers table (SELECT, UPDATE, DELETE)'
+PRINT '  - OrderCosts table (UPDATE)'
+GO
+
+-- ============================================================================
+-- 5.4. EXTENDED EVENTS - PERFORMANCE MONITORING
+-- ============================================================================
+
+USE [master]
+GO
+
+PRINT ''
+PRINT '--- 5.4. EXTENDED EVENTS SETUP ---'
+GO
+
+-- Drop existing sessions
+IF EXISTS (SELECT 1 FROM sys.server_event_sessions WHERE name = 'Atelier_LongQueries')
+BEGIN
+    DROP EVENT SESSION [Atelier_LongQueries] ON SERVER;
+    PRINT '✓ Existing performance monitoring session removed';
+END
+GO
+
+-- Create optimized performance monitoring session
+CREATE EVENT SESSION [Atelier_LongQueries] ON SERVER 
+ADD EVENT sqlserver.sql_batch_completed
+(
+    ACTION
+    (
+        sqlserver.client_app_name,
+        sqlserver.client_hostname,
+        sqlserver.database_name,
+        sqlserver.session_id,
+        sqlserver.username
+    )
+    WHERE (
+        [sqlserver].[database_name] = N'Atelier'
+        AND [duration] >= 2000000  
+    )
+),
+ADD EVENT sqlserver.rpc_completed
+(
+    ACTION
+    (
+        sqlserver.client_app_name,
+        sqlserver.client_hostname,
+        sqlserver.database_name,
+        sqlserver.session_id,
+        sqlserver.username
+    )
+    WHERE (
+        [sqlserver].[database_name] = N'Atelier'
+        AND [duration] >= 2000000
+    )
+)
+ADD TARGET package0.event_file
+(
+    SET filename = N'C:\CP\Audit\Atelier\Atelier_LongQueries.xel',
+        max_file_size = 25,        
+        max_rollover_files = 3     
+)
+WITH (
+    MAX_MEMORY = 2048 KB,          
+    EVENT_RETENTION_MODE = ALLOW_SINGLE_EVENT_LOSS,
+    MAX_DISPATCH_LATENCY = 30 SECONDS,
+    STARTUP_STATE = ON
+);
+GO
+
+ALTER EVENT SESSION [Atelier_LongQueries] ON SERVER STATE = START;
+GO
+
+PRINT '✓ Extended Events: Performance monitoring session started'
+PRINT '  - Tracking queries >= 2 seconds'
+PRINT '  - Monitoring both ad-hoc and stored procedure calls'
+GO
+
+-- ============================================================================
+-- 5.5. EXTENDED EVENTS - FAILED LOGIN TRACKING
+-- ============================================================================
+
+IF EXISTS (SELECT 1 FROM sys.server_event_sessions WHERE name = 'Atelier_FailedLogins')
+BEGIN
+    DROP EVENT SESSION [Atelier_FailedLogins] ON SERVER;
+    PRINT '✓ Existing failed login session removed';
+END
+GO
+
+CREATE EVENT SESSION [Atelier_FailedLogins] ON SERVER 
+ADD EVENT sqlserver.error_reported
+(
+    ACTION
+    (
+        sqlserver.client_app_name,
+        sqlserver.client_hostname,
+        sqlserver.server_principal_name,
+        sqlserver.session_id,
+        package0.collect_system_time
+    )
+    WHERE (
+        [error_number] = 18456  
+        OR [error_number] = 18452  
+        OR [error_number] = 18470  
+    )
+)
+ADD TARGET package0.event_file
+(
+    SET filename = N'C:\CP\Audit\Atelier\Atelier_FailedLogins.xel',
+        max_file_size = 10,
+        max_rollover_files = 3
+),
+ADD TARGET package0.ring_buffer
+(
+    SET max_memory = 1024  
+)
+WITH (
+    MAX_MEMORY = 1024 KB,
+    EVENT_RETENTION_MODE = ALLOW_SINGLE_EVENT_LOSS,
+    MAX_DISPATCH_LATENCY = 5 SECONDS,
+    STARTUP_STATE = ON
+);
+GO
+
+ALTER EVENT SESSION [Atelier_FailedLogins] ON SERVER STATE = START;
+GO
+
+PRINT '✓ Extended Events: Failed login tracking started'
+PRINT '  - All failed login attempts logged'
+PRINT '  - Untrusted domain attempts tracked'
+PRINT '  - Disabled login attempts monitored'
+GO
+
+-- ============================================================================
+-- 5.6. VERIFICATION
+-- ============================================================================
+
+PRINT ''
+PRINT '--- CONFIGURATION VERIFICATION ---'
+GO
+
+-- Server Audit status (SQL Server 2022 compatible)
+PRINT ''
+PRINT 'Server Audits:'
+SELECT 
+    name AS [Audit_Name],
+    CASE [is_state_enabled] 
+        WHEN 0 THEN 'DISABLED' 
+        WHEN 1 THEN 'ENABLED' 
+    END AS [Status],
+    CASE on_failure 
+        WHEN 0 THEN 'Continue' 
+        WHEN 1 THEN 'Shutdown Server' 
+        WHEN 2 THEN 'Fail Operation'
+    END AS [On_Failure],
+    type_desc AS [Audit_Type],
+    audit_guid AS [Audit_GUID]
+FROM sys.server_audits
+WHERE name = 'Atelier_Server_Audit';
+GO
+
+-- Extended Events status
+PRINT ''
+PRINT 'Extended Event Sessions:'
+SELECT 
+    ses.name AS [Session_Name],
+    CASE WHEN dxs.name IS NOT NULL THEN 'RUNNING' ELSE 'STOPPED' END AS [Status],
+    ses.max_memory AS [Max_Memory_KB]
+FROM sys.server_event_sessions ses
+LEFT JOIN sys.dm_xe_sessions dxs ON ses.name = dxs.name
+WHERE ses.name LIKE 'Atelier_%';
+GO
+
+-- Audit specifications status
+PRINT ''
+PRINT 'Audit Specifications:'
+SELECT 
+    'SERVER' AS [Level],
+    name AS [Specification_Name],
+    CASE is_state_enabled 
+        WHEN 0 THEN 'DISABLED' 
+        WHEN 1 THEN 'ENABLED' 
+    END AS [Status]
+FROM sys.server_audit_specifications
+WHERE name LIKE 'Atelier%'
+UNION ALL
+SELECT 
+    'DATABASE' AS [Level],
+    name AS [Specification_Name],
+    CASE is_state_enabled 
+        WHEN 0 THEN 'DISABLED' 
+        WHEN 1 THEN 'ENABLED' 
+    END AS [Status]
+FROM [Atelier].sys.database_audit_specifications
+WHERE name LIKE 'Atelier%';
+GO
+
+-- Audit file details (SQL Server 2022)
+PRINT ''
+PRINT 'Audit File Configuration (SQL Server 2022 compatible):'
+;
+SELECT
+    sa.name AS Audit_Name,
+    sa.type_desc AS Audit_Type,
+    sa.on_failure AS On_Failure,
+    sa.queue_delay AS Queue_Delay,
+    -- File audit settings (SQL Server 2022)
+    sfa.log_file_path AS Audit_File_Path,
+    sfa.log_file_name AS Audit_File_Name,
+    sfa.max_file_size AS Max_File_Size_MB,
+    sfa.max_rollover_files AS Max_Rollover_Files,
+    sfa.max_files AS Max_Files,
+    -- Audit status
+    st.status AS Audit_Status, -- 0 = off, 1 = on
+    st.audit_file_path, -- active file path
+    st.audit_file_size, -- size in bytes
+    st.event_session_address
+FROM sys.server_audits sa
+LEFT JOIN sys.server_file_audits sfa
+    ON sa.audit_id = sfa.audit_id
+LEFT JOIN sys.dm_server_audit_status st
+    ON sa.audit_id = st.audit_id
+WHERE sa.name = 'Atelier_Server_Audit';
+GO
+
+PRINT ''
+PRINT '============================================================================'
+PRINT 'STAGE 5 COMPLETED SUCCESSFULLY'
+PRINT '============================================================================'
+PRINT ''
+PRINT 'Created and Enabled:'
+PRINT '  ✓ SQL Server Audit (file-based audit)'
+PRINT '  ✓ Server Audit Specification (logins, permissions, roles)'
+PRINT '  ✓ Database Audit Specification (critical tables: Orders, Customers, CashRegister)'
+PRINT '  ✓ Extended Events: performance monitoring (queries >= 2 sec)'
+PRINT '  ✓ Extended Events: failed login tracking'
+PRINT ''
+PRINT 'Audit logs location: C:\CP\Audit\Atelier\'
+PRINT ''
+PRINT 'Configuration Details:'
+PRINT '  • File sizes: 50MB (audit), 25MB (XE)'
+PRINT '  • Rollover files: 5 (audit), 3 (XE)'
+PRINT '  • Query threshold: 2 seconds'
+PRINT '  • Failure handling: CONTINUE (server keeps running)'
+PRINT '  • AUDIT_GUID: Auto-generated by SQL Server'
+PRINT '============================================================================'
+GO
+
+-- ============================================================================
+-- 5.7. USEFUL QUERIES FOR LOG ANALYSIS
+-- ============================================================================
+
+PRINT ''
+PRINT '============================================================================'
+PRINT 'USEFUL QUERIES FOR LOG ANALYSIS'
+PRINT '============================================================================'
+GO
+
+PRINT '
+-- =============================================================================
+-- QUERY 1: Recent audit events (last 100)
+-- =============================================================================
+SELECT TOP 100
+    event_time AS [Event_Time],
+    session_server_principal_name AS [User],
+    database_name AS [Database],
+    schema_name AS [Schema],
+    object_name AS [Object],
+    statement AS [Query],
+    succeeded AS [Success]
+FROM sys.fn_get_audit_file(''C:\CP\Audit\Atelier\*.sqlaudit'', DEFAULT, DEFAULT)
+ORDER BY event_time DESC;
+
+-- =============================================================================
+-- QUERY 2: Failed login attempts
+-- =============================================================================
+SELECT 
+    event_time AS [Event_Time],
+    server_principal_name AS [User],
+    client_ip AS [IP_Address],
+    application_name AS [Application],
+    session_id AS [Session_ID]
+FROM sys.fn_get_audit_file(''C:\CP\Audit\Atelier\*.sqlaudit'', DEFAULT, DEFAULT)
+WHERE action_id = ''LGIF''  -- Login Failed
+ORDER BY event_time DESC;
+
+-- =============================================================================
+-- QUERY 3: Access to Customers table (sensitive data)
+-- =============================================================================
+SELECT 
+    event_time AS [Event_Time],
+    session_server_principal_name AS [User],
+    action_id AS [Action],
+    statement AS [Query]
+FROM sys.fn_get_audit_file(''C:\CP\Audit\Atelier\*.sqlaudit'', DEFAULT, DEFAULT)
+WHERE object_name = ''Customers''
+ORDER BY event_time DESC;
+
+-- =============================================================================
+-- QUERY 4: All modifications to Orders table
+-- =============================================================================
+SELECT 
+    event_time AS [Event_Time],
+    session_server_principal_name AS [User],
+    action_id AS [Action],
+    CASE action_id
+        WHEN ''IN'' THEN ''INSERT''
+        WHEN ''UP'' THEN ''UPDATE''
+        WHEN ''DL'' THEN ''DELETE''
+        ELSE action_id
+    END AS [Action_Type],
+    statement AS [Query]
+FROM sys.fn_get_audit_file(''C:\CP\Audit\Atelier\*.sqlaudit'', DEFAULT, DEFAULT)
+WHERE object_name = ''Orders''
+    AND action_id IN (''IN'', ''UP'', ''DL'')
+ORDER BY event_time DESC;
+
+-- =============================================================================
+-- QUERY 5: CashRegister operations (financial transactions)
+-- =============================================================================
+SELECT 
+    event_time AS [Event_Time],
+    session_server_principal_name AS [User],
+    action_id AS [Action],
+    statement AS [Query],
+    succeeded AS [Success]
+FROM sys.fn_get_audit_file(''C:\CP\Audit\Atelier\*.sqlaudit'', DEFAULT, DEFAULT)
+WHERE object_name = ''CashRegister''
+ORDER BY event_time DESC;
+
+-- =============================================================================
+-- QUERY 6: Long running queries (from Extended Events)
+-- =============================================================================
+WITH EventData AS
+(
+    SELECT CAST(event_data AS XML) AS EventXML
+    FROM sys.fn_xe_file_target_read_file(
+        ''C:\CP\Audit\Atelier\Atelier_LongQueries*.xel'', 
+        NULL, NULL, NULL
+    )
+)
+SELECT TOP 50
+    EventXML.value(''(event/@timestamp)[1]'', ''DATETIME2'') AS [Event_Time],
+    EventXML.value(''(event/action[@name="username"]/value)[1]'', ''NVARCHAR(128)'') AS [User],
+    EventXML.value(''(event/action[@name="database_name"]/value)[1]'', ''NVARCHAR(128)'') AS [Database],
+    EventXML.value(''(event/data[@name="duration"]/value)[1]'', ''BIGINT'') / 1000000.0 AS [Duration_Seconds],
+    EventXML.value(''(event/data[@name="cpu_time"]/value)[1]'', ''BIGINT'') / 1000000.0 AS [CPU_Time_Seconds],
+    EventXML.value(''(event/data[@name="logical_reads"]/value)[1]'', ''BIGINT'') AS [Logical_Reads],
+    EventXML.value(''(event/action[@name="client_app_name"]/value)[1]'', ''NVARCHAR(128)'') AS [Application]
+FROM EventData
+ORDER BY [Event_Time] DESC;
+
+-- =============================================================================
+-- QUERY 7: Failed logins from Extended Events (with details)
+-- =============================================================================
+WITH FailedLogins AS
+(
+    SELECT CAST(event_data AS XML) AS EventXML
+    FROM sys.fn_xe_file_target_read_file(
+        ''C:\CP\Audit\Atelier\Atelier_FailedLogins*.xel'', 
+        NULL, NULL, NULL
+    )
+)
+SELECT TOP 100
+    EventXML.value(''(event/@timestamp)[1]'', ''DATETIME2'') AS [Event_Time],
+    EventXML.value(''(event/action[@name="server_principal_name"]/value)[1]'', ''NVARCHAR(128)'') AS [Login_Name],
+    EventXML.value(''(event/action[@name="client_hostname"]/value)[1]'', ''NVARCHAR(128)'') AS [Client_Host],
+    EventXML.value(''(event/action[@name="client_app_name"]/value)[1]'', ''NVARCHAR(128)'') AS [Application],
+    EventXML.value(''(event/data[@name="error_number"]/value)[1]'', ''INT'') AS [Error_Number],
+    EventXML.value(''(event/data[@name="message"]/text)[1]'', ''NVARCHAR(MAX)'') AS [Error_Message]
+FROM FailedLogins
+ORDER BY [Event_Time] DESC;
+
+-- =============================================================================
+-- QUERY 8: Daily audit activity summary
+-- =============================================================================
+SELECT 
+    CAST(event_time AS DATE) AS [Date],
+    COUNT(*) AS [Total_Events],
+    COUNT(CASE WHEN succeeded = 1 THEN 1 END) AS [Successful],
+    COUNT(CASE WHEN succeeded = 0 THEN 1 END) AS [Failed],
+    COUNT(DISTINCT session_server_principal_name) AS [Unique_Users]
+FROM sys.fn_get_audit_file(''C:\CP\Audit\Atelier\*.sqlaudit'', DEFAULT, DEFAULT)
+GROUP BY CAST(event_time AS DATE)
+ORDER BY [Date] DESC;
+
+-- =============================================================================
+-- QUERY 9: Most active users
+-- =============================================================================
+SELECT TOP 20
+    session_server_principal_name AS [User],
+    COUNT(*) AS [Total_Operations],
+    COUNT(CASE WHEN action_id IN (''IN'', ''UP'', ''DL'') THEN 1 END) AS [DML_Operations],
+    COUNT(CASE WHEN action_id = ''SL'' THEN 1 END) AS [SELECT_Operations],
+    MIN(event_time) AS [First_Activity],
+    MAX(event_time) AS [Last_Activity]
+FROM sys.fn_get_audit_file(''C:\CP\Audit\Atelier\*.sqlaudit'', DEFAULT, DEFAULT)
+WHERE database_name = ''Atelier''
+GROUP BY session_server_principal_name
+ORDER BY [Total_Operations] DESC;
+
+-- =============================================================================
+-- QUERY 10: Permission changes audit
+-- =============================================================================
+SELECT 
+    event_time AS [Event_Time],
+    session_server_principal_name AS [Changed_By],
+    server_principal_name AS [Target_User],
+    action_id AS [Action],
+    statement AS [Command]
+FROM sys.fn_get_audit_file(''C:\CP\Audit\Atelier\*.sqlaudit'', DEFAULT, DEFAULT)
+WHERE class_type = ''SR''  -- Server Role
+    OR action_id LIKE ''%PERMISSION%''
+ORDER BY event_time DESC;
+'
+GO
+
+PRINT ''
+PRINT '============================================================================'
+PRINT 'All queries saved above. Copy and execute as needed.'
+PRINT '============================================================================'
+PRINT ''
+PRINT 'NOTE: To test the audit, perform some operations:'
+PRINT '  1. Try a failed login: Use incorrect credentials in SSMS'
+PRINT '  2. Query customers: SELECT * FROM Atelier.dbo.Customers;'
+PRINT '  3. Insert an order: INSERT INTO Atelier.dbo.Orders (...) VALUES (...);'
+PRINT '  4. Check audit logs using QUERY 1 above'
+PRINT ''
+PRINT 'To view audit files in Windows Explorer:'
+PRINT '  explorer C:\CP\Audit\Atelier\'
+PRINT '============================================================================'
+GO
