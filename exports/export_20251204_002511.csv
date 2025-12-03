@@ -1,0 +1,10 @@
+SessionName,TargetName,ExecutionCount,MaxDurationMS
+Atelier_FailedLogins,ring_buffer,15,0
+Atelier_FailedLogins,event_file,15,10
+Atelier_LongQueries,event_file,6,4
+Atelier_Server_Audit$A,asynchronous_security_audit_file_target,586,412
+hkenginexesession,event_file,0,0
+sp_server_diagnostics session,router,989,2
+system_health,ring_buffer,204,7
+system_health,event_file,204,63
+telemetry_xevents,ring_buffer,1,0

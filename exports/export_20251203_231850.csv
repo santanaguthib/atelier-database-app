@@ -1,0 +1,551 @@
+EventTime,Operation,Success,Username,Database,Schema,Table,Statement
+2025-12-03 16:09:44.635059,DELETE,True,SUNDER\santana,Atelier,dbo,Orders,"DELETE FROM dbo.Orders
+WHERE OrderID = (SELECT TOP 1 OrderID FROM dbo.Orders ORDER BY OrderDate DESC)"
+2025-12-03 16:09:44.528962,SELECT,True,SUNDER\santana,Atelier,dbo,Customers,"UPDATE dbo.Customers
+SET Address = '123 Updated Street'
+WHERE CustomerID = 1"
+2025-12-03 16:09:44.528962,UPDATE,True,SUNDER\santana,Atelier,dbo,Customers,"UPDATE dbo.Customers
+SET Address = '123 Updated Street'
+WHERE CustomerID = 1"
+2025-12-03 15:56:13.248427,SELECT,True,atelier_admin,Atelier,dbo,Customers,SELECT COUNT(*) FROM Customers
+2025-12-03 08:10:30.095895,SELECT,True,tailor_user,Atelier,dbo,Customers,select * from Customers
+2025-12-03 08:10:12.283636,SELECT,True,tailor_user,Atelier,dbo,Customers,select * from Customers
+2025-12-03 08:09:08.502169,SELECT,True,tailor_user,Atelier,dbo,Customers,"SELECT TOP 5
+        CustomerID,
+        CustomerName,
+        Phone,
+        Address
+    FROM Customers
+    ORDER BY CustomerID"
+2025-12-03 06:50:14.519770,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5
+        c.CustomerID,
+        c.CustomerName,
+        COUNT(o.OrderID) AS OrderCount
+    FROM Customers c
+    LEFT JOIN Orders o ON c.CustomerID = o.CustomerID
+    GROUP BY c.CustomerID, c.CustomerName
+    HAVING COUNT(o.OrderID) = 0"
+2025-12-03 06:50:14.498429,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        c.CustomerID,
+        c.CustomerName,
+        COUNT(o.OrderID) AS ActiveOrders,
+        MAX(o.OrderDate) AS LastOrderDate
+    FROM Customers c
+    LEFT JOIN Orders o ON c.CustomerID = o.CustomerID
+    GROUP BY c.CustomerID, c.CustomerName
+    HAVING COUNT(o.OrderID) > 0
+    ORDER BY COUNT(o.OrderID) DESC"
+2025-12-03 06:48:42.639868,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5
+        c.CustomerID,
+        c.CustomerName,
+        COUNT(o.OrderID) AS OrderCount
+    FROM Customers c
+    LEFT JOIN Orders o ON c.CustomerID = o.CustomerID
+    GROUP BY c.CustomerID, c.CustomerName
+    HAVING COUNT(o.OrderID) = 0"
+2025-12-03 06:48:42.622498,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        c.CustomerID,
+        c.CustomerName,
+        COUNT(o.OrderID) AS ActiveOrders,
+        MAX(o.OrderDate) AS LastOrderDate
+    FROM Customers c
+    LEFT JOIN Orders o ON c.CustomerID = o.CustomerID
+    GROUP BY c.CustomerID, c.CustomerName
+    HAVING COUNT(o.OrderID) > 0
+    ORDER BY COUNT(o.OrderID) DESC"
+2025-12-03 06:40:03.184817,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5
+        CustomerID,
+        CustomerName,
+        Phone,
+        Address
+    FROM Customers
+    ORDER BY CustomerID"
+2025-12-03 06:39:04.701146,SELECT,True,tailor_user,Atelier,dbo,Customers,"SELECT TOP 5
+        CustomerID,
+        CustomerName,
+        Phone,
+        Address
+    FROM Customers
+    ORDER BY CustomerID"
+2025-12-03 06:38:48.074617,SELECT,True,manager,Atelier,dbo,Customers,"SELECT TOP 5
+        CustomerID,
+        CustomerName,
+        Phone,
+        Address
+    FROM Customers
+    ORDER BY CustomerID"
+2025-12-03 06:37:58.153916,SELECT,True,cashier,Atelier,dbo,Customers,"SELECT TOP 10
+            CustomerID,
+            CustomerName,
+            Phone,
+            Address
+        FROM Customers
+        ORDER BY CustomerID"
+2025-12-03 06:37:50.730269,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+            CustomerID,
+            CustomerName,
+            Phone,
+            Address
+        FROM Customers
+        ORDER BY CustomerID"
+2025-12-03 06:37:00.128681,SELECT,True,cashier,Atelier,dbo,Customers,"SELECT TOP 10
+            CustomerID,
+            CustomerName,
+            Phone,
+            Address
+        FROM Customers
+        ORDER BY CustomerID"
+2025-12-03 06:36:34.699596,SELECT,True,cashier,Atelier,dbo,Customers,"SELECT TOP 10
+            CustomerID,
+            CustomerName,
+            Phone,
+            Address
+        FROM Customers
+        ORDER BY CustomerID"
+2025-12-03 06:36:20.298950,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+            CustomerID,
+            CustomerName,
+            Phone,
+            Address
+        FROM Customers
+        ORDER BY CustomerID"
+2025-12-03 06:35:44.532221,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5
+        c.CustomerID,
+        c.CustomerName,
+        COUNT(o.OrderID) AS OrderCount
+    FROM Customers c
+    JOIN Orders o ON c.CustomerID = o.CustomerID
+    GROUP BY c.CustomerID, c.CustomerName
+    ORDER BY COUNT(o.OrderID) DESC"
+2025-12-03 06:35:43.485998,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 15
+        o.OrderID,
+        c.CustomerName,
+        dbo.fn_GetOrderTotalCost(o.OrderID) AS TotalCost,
+        ISNULL(SUM(cr.Amount), 0) AS TotalPaid,
+        dbo.fn_GetPaymentStatus(o.OrderID) AS PaymentStatus
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    LEFT JOIN CashRegister cr ON o.OrderID = cr.OrderID
+    GROUP BY o.OrderID, c.CustomerName
+    ORDER BY o.OrderID DESC"
+2025-12-03 06:35:42.643056,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        p.ProductName,
+        dbo.fn_GetOrderTotalCost(o.OrderID) AS CalculatedTotal
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    JOIN Products p ON o.ProductID = p.ProductID
+    ORDER BY o.OrderID DESC"
+2025-12-03 06:34:25.419500,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5
+        c.CustomerID,
+        c.CustomerName,
+        COUNT(o.OrderID) AS OrderCount
+    FROM Customers c
+    JOIN Orders o ON c.CustomerID = o.CustomerID
+    GROUP BY c.CustomerID, c.CustomerName
+    ORDER BY COUNT(o.OrderID) DESC"
+2025-12-03 06:34:22.434125,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 15
+        o.OrderID,
+        c.CustomerName,
+        dbo.fn_GetOrderTotalCost(o.OrderID) AS TotalCost,
+        ISNULL(SUM(cr.Amount), 0) AS TotalPaid,
+        dbo.fn_GetPaymentStatus(o.OrderID) AS PaymentStatus
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    LEFT JOIN CashRegister cr ON o.OrderID = cr.OrderID
+    GROUP BY o.OrderID, c.CustomerName
+    ORDER BY o.OrderID DESC"
+2025-12-03 06:34:13.532640,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        p.ProductName,
+        dbo.fn_GetOrderTotalCost(o.OrderID) AS CalculatedTotal
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    JOIN Products p ON o.ProductID = p.ProductID
+    ORDER BY o.OrderID DESC"
+2025-12-03 06:34:05.738293,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        p.ProductName,
+        dbo.fn_GetOrderTotalCost(o.OrderID) AS CalculatedTotal
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    JOIN Products p ON o.ProductID = p.ProductID
+    ORDER BY o.OrderID DESC"
+2025-12-03 06:33:57.278976,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT 
+        OrderID,
+        OrderDate,
+        TailorName,
+        CustomerName,
+        StatusID
+    FROM vw_TailorOrders
+    ORDER BY OrderDate DESC"
+2025-12-03 06:33:55.571333,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT 
+        OrderID,
+        OrderDate,
+        CustomerName,
+        PaymentDate,
+        Amount
+    FROM vw_CashierOrders
+    ORDER BY PaymentDate DESC"
+2025-12-03 06:33:53.018064,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 20
+        OrderID,
+        OrderDate,
+        CustomerName,
+        Phone,
+        TailorName,
+        ProductName,
+        StatusName,
+        TotalCost,
+        PaidAmount,
+        RemainingAmount
+    FROM vw_OrderDetails
+    ORDER BY OrderDate DESC"
+2025-12-03 06:22:34.758483,UPDATE,True,atelier_admin,Atelier,dbo,Orders,"UPDATE o
+    SET CompletionDate = GETDATE()
+    FROM Orders o
+    INNER JOIN inserted i ON o.OrderID = i.OrderID
+    INNER JOIN deleted d ON o.OrderID = d.OrderID
+    WHERE i.StatusID = 3      -- Completed
+      AND d.StatusID <> 3
+      AND o.CompletionDate IS NULL"
+2025-12-03 06:22:34.742584,UPDATE,True,atelier_admin,Atelier,dbo,Orders,"UPDATE o
+    SET o.StatusID = 3   -- Completed
+    FROM Orders o
+    INNER JOIN inserted i ON o.OrderID = i.OrderID
+    INNER JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    WHERE (oc.BaseCost + oc.ComplicationCost + oc.FabricCost + oc.UrgencyCost) <=
+          (SELECT SUM(Amount) FROM CashRegister WHERE OrderID = o.OrderID)"
+2025-12-03 06:22:34.663489,INSERT,True,atelier_admin,Atelier,dbo,CashRegister,"INSERT INTO CashRegister (OrderID, PaymentDate, Amount)
+        VALUES (@OrderID, @PaymentDate, @Amount)"
+2025-12-03 06:22:03.993765,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) AS TotalCost,
+        ISNULL(SUM(cr.Amount), 0) AS TotalPaid,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) AS Balance
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    LEFT JOIN CashRegister cr ON o.OrderID = cr.OrderID
+    GROUP BY o.OrderID, c.CustomerName, oc.BaseCost, oc.FabricCost, oc.ComplicationCost, oc.UrgencyCost
+    HAVING ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) > 0
+    ORDER BY o.OrderID DESC"
+2025-12-03 06:21:38.664373,UPDATE,True,atelier_admin,Atelier,dbo,Orders,"UPDATE o
+    SET CompletionDate = GETDATE()
+    FROM Orders o
+    INNER JOIN inserted i ON o.OrderID = i.OrderID
+    INNER JOIN deleted d ON o.OrderID = d.OrderID
+    WHERE i.StatusID = 3      -- Completed
+      AND d.StatusID <> 3
+      AND o.CompletionDate IS NULL"
+2025-12-03 06:21:38.649219,UPDATE,True,atelier_admin,Atelier,dbo,Orders,"UPDATE o
+    SET o.StatusID = 3   -- Completed
+    FROM Orders o
+    INNER JOIN inserted i ON o.OrderID = i.OrderID
+    INNER JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    WHERE (oc.BaseCost + oc.ComplicationCost + oc.FabricCost + oc.UrgencyCost) <=
+          (SELECT SUM(Amount) FROM CashRegister WHERE OrderID = o.OrderID)"
+2025-12-03 06:21:38.569775,INSERT,True,atelier_admin,Atelier,dbo,CashRegister,"INSERT INTO CashRegister (OrderID, PaymentDate, Amount)
+        VALUES (@OrderID, @PaymentDate, @Amount)"
+2025-12-03 06:21:06.357841,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) AS TotalCost,
+        ISNULL(SUM(cr.Amount), 0) AS TotalPaid,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) AS Balance
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    LEFT JOIN CashRegister cr ON o.OrderID = cr.OrderID
+    GROUP BY o.OrderID, c.CustomerName, oc.BaseCost, oc.FabricCost, oc.ComplicationCost, oc.UrgencyCost
+    HAVING ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) > 0
+    ORDER BY o.OrderID DESC"
+2025-12-03 06:19:42.124651,INSERT,True,atelier_admin,Atelier,dbo,CashRegister,"INSERT INTO CashRegister (OrderID, PaymentDate, Amount)
+        VALUES (@OrderID, @PaymentDate, @Amount)"
+2025-12-03 06:19:36.003283,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) AS TotalCost,
+        ISNULL(SUM(cr.Amount), 0) AS TotalPaid,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) AS Balance
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    LEFT JOIN CashRegister cr ON o.OrderID = cr.OrderID
+    GROUP BY o.OrderID, c.CustomerName, oc.BaseCost, oc.FabricCost, oc.ComplicationCost, oc.UrgencyCost
+    HAVING ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) > 0
+    ORDER BY o.OrderID DESC"
+2025-12-03 06:19:27.234698,UPDATE,True,atelier_admin,Atelier,dbo,Orders,"UPDATE o
+    SET CompletionDate = GETDATE()
+    FROM Orders o
+    INNER JOIN inserted i ON o.OrderID = i.OrderID
+    INNER JOIN deleted d ON o.OrderID = d.OrderID
+    WHERE i.StatusID = 3      -- Completed
+      AND d.StatusID <> 3
+      AND o.CompletionDate IS NULL"
+2025-12-03 06:19:27.218696,UPDATE,True,atelier_admin,Atelier,dbo,Orders,"UPDATE o
+    SET o.StatusID = 3   -- Completed
+    FROM Orders o
+    INNER JOIN inserted i ON o.OrderID = i.OrderID
+    INNER JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    WHERE (oc.BaseCost + oc.ComplicationCost + oc.FabricCost + oc.UrgencyCost) <=
+          (SELECT SUM(Amount) FROM CashRegister WHERE OrderID = o.OrderID)"
+2025-12-03 06:19:27.140527,INSERT,True,atelier_admin,Atelier,dbo,CashRegister,"INSERT INTO CashRegister (OrderID, PaymentDate, Amount)
+        VALUES (@OrderID, @PaymentDate, @Amount)"
+2025-12-03 06:19:14.067976,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) AS TotalCost,
+        ISNULL(SUM(cr.Amount), 0) AS TotalPaid,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) AS Balance
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    LEFT JOIN CashRegister cr ON o.OrderID = cr.OrderID
+    GROUP BY o.OrderID, c.CustomerName, oc.BaseCost, oc.FabricCost, oc.ComplicationCost, oc.UrgencyCost
+    HAVING ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) > 0
+    ORDER BY o.OrderID DESC"
+2025-12-03 06:17:07.223636,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) AS TotalCost,
+        ISNULL(SUM(cr.Amount), 0) AS TotalPaid,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) AS Balance
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    LEFT JOIN CashRegister cr ON o.OrderID = cr.OrderID
+    GROUP BY o.OrderID, c.CustomerName, oc.BaseCost, oc.FabricCost, oc.ComplicationCost, oc.UrgencyCost
+    HAVING ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) > 0
+    ORDER BY o.OrderID DESC"
+2025-12-03 06:17:02.848157,UPDATE,True,atelier_admin,Atelier,dbo,OrderCosts,"UPDATE OrderCosts
+        SET BaseCost = @BaseCost,
+            ComplicationCost = @CompCost,
+            FabricCost = @FabricCost,
+            UrgencyCost = @UrgencyCost
+        WHERE OrderID = @OrderID"
+2025-12-03 06:17:00.373076,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        p.ProductName,
+        o.OrderDate,
+        CASE WHEN oc.OrderID IS NULL THEN 'Not Calculated' ELSE 'Calculated' END AS CostStatus
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    JOIN Products p ON o.ProductID = p.ProductID
+    LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    ORDER BY o.OrderID DESC"
+2025-12-03 06:16:53.073706,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        p.ProductName,
+        o.OrderDate,
+        CASE WHEN oc.OrderID IS NULL THEN 'Not Calculated' ELSE 'Calculated' END AS CostStatus
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    JOIN Products p ON o.ProductID = p.ProductID
+    LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    ORDER BY o.OrderID DESC"
+2025-12-03 06:16:44.966430,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5 CustomerID, CustomerName FROM Customers ORDER BY CustomerID"
+2025-12-03 06:11:47.089307,INSERT,True,atelier_admin,Atelier,dbo,Orders,"INSERT INTO Orders (OrderID, OrderDate, TailorID, ProductID, CustomerID, 
+                        UrgencyPercentage, Language, StatusID)
+    VALUES (@NewOrderID, @OrderDate, @TailorID, @ProductID, @CustomerID,
+            @UrgencyPercentage, @Language, @StatusID)"
+2025-12-03 06:11:35.006326,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5 CustomerID, CustomerName FROM Customers ORDER BY CustomerID"
+2025-12-03 06:09:43.333948,INSERT,True,atelier_admin,Atelier,dbo,Orders,"INSERT INTO Orders (OrderID, OrderDate, TailorID, ProductID, CustomerID, 
+                        UrgencyPercentage, Language, StatusID)
+    VALUES (@NewOrderID, @OrderDate, @TailorID, @ProductID, @CustomerID,
+            @UrgencyPercentage, @Language, @StatusID)"
+2025-12-03 06:09:14.831986,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5 CustomerID, CustomerName FROM Customers ORDER BY CustomerID"
+2025-12-03 06:07:34.235373,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5 CustomerID, CustomerName FROM Customers ORDER BY CustomerID"
+2025-12-03 06:03:36.981316,INSERT,True,atelier_admin,Atelier,dbo,Orders,"INSERT INTO Orders (OrderID, OrderDate, TailorID, ProductID, CustomerID, 
+                        UrgencyPercentage, Language, StatusID)
+    VALUES (@NewOrderID, @OrderDate, @TailorID, @ProductID, @CustomerID,
+            @UrgencyPercentage, @Language, @StatusID)"
+2025-12-03 06:03:21.809903,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5 CustomerID, CustomerName FROM Customers ORDER BY CustomerID"
+2025-12-03 06:01:24.943664,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5 CustomerID, CustomerName FROM Customers ORDER BY CustomerID"
+2025-12-03 05:53:09.890942,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5 CustomerID, CustomerName FROM Customers ORDER BY CustomerID"
+2025-12-03 05:43:58.486187,SELECT,True,cashier,Atelier,dbo,Customers,"SELECT TOP 5
+        CustomerID,
+        CustomerName,
+        Phone,
+        Address
+    FROM Customers
+    ORDER BY CustomerID"
+2025-12-03 05:43:58.063400,SELECT,True,tailor_user,Atelier,dbo,Customers,"SELECT TOP 5
+        CustomerID,
+        CustomerName,
+        Phone,
+        Address
+    FROM Customers
+    ORDER BY CustomerID"
+2025-12-03 05:43:57.667664,SELECT,True,manager,Atelier,dbo,Customers,"SELECT TOP 5
+        CustomerID,
+        CustomerName,
+        Phone,
+        Address
+    FROM Customers
+    ORDER BY CustomerID"
+2025-12-03 05:43:57.299829,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5
+        CustomerID,
+        CustomerName,
+        Phone,
+        Address
+    FROM Customers
+    ORDER BY CustomerID"
+2025-12-03 05:43:06.206788,SELECT,True,cashier,Atelier,dbo,Customers,"SELECT TOP 1 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 05:43:05.718747,SELECT,True,tailor_user,Atelier,dbo,Customers,"SELECT TOP 1 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 05:43:05.206138,SELECT,True,manager,Atelier,dbo,Customers,"SELECT TOP 1 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 05:43:04.399374,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 1 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 05:03:23.975759,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5 CustomerID, CustomerName FROM Customers ORDER BY CustomerID"
+2025-12-03 05:02:54.815456,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) AS TotalCost,
+        ISNULL(SUM(cr.Amount), 0) AS TotalPaid,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) AS Balance
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    LEFT JOIN CashRegister cr ON o.OrderID = cr.OrderID
+    GROUP BY o.OrderID, c.CustomerName, oc.BaseCost, oc.FabricCost, oc.ComplicationCost, oc.UrgencyCost
+    HAVING ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) > 0
+    ORDER BY o.OrderID DESC"
+2025-12-03 05:02:45.431141,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        p.ProductName,
+        o.OrderDate,
+        CASE WHEN oc.OrderID IS NULL THEN 'Not Calculated' ELSE 'Calculated' END AS CostStatus
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    JOIN Products p ON o.ProductID = p.ProductID
+    LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    ORDER BY o.OrderID DESC"
+2025-12-03 05:02:38.891571,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5 CustomerID, CustomerName FROM Customers ORDER BY CustomerID"
+2025-12-03 05:02:07.245764,UPDATE,True,atelier_admin,Atelier,dbo,OrderCosts,"UPDATE OrderCosts
+        SET BaseCost = @BaseCost,
+            ComplicationCost = @CompCost,
+            FabricCost = @FabricCost,
+            UrgencyCost = @UrgencyCost
+        WHERE OrderID = @OrderID"
+2025-12-03 05:01:58.420221,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        p.ProductName,
+        o.OrderDate,
+        CASE WHEN oc.OrderID IS NULL THEN 'Not Calculated' ELSE 'Calculated' END AS CostStatus
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    JOIN Products p ON o.ProductID = p.ProductID
+    LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    ORDER BY o.OrderID DESC"
+2025-12-03 05:01:42.840100,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5 CustomerID, CustomerName FROM Customers ORDER BY CustomerID"
+2025-12-03 04:19:47.573838,SELECT,True,tailor_user,Atelier,dbo,Customers,"SELECT TOP 5
+        CustomerID,
+        CustomerName,
+        Phone,
+        Address
+    FROM Customers
+    ORDER BY CustomerID"
+2025-12-03 04:19:47.255251,SELECT,True,cashier,Atelier,dbo,Customers,"SELECT TOP 5
+        CustomerID,
+        CustomerName,
+        Phone,
+        Address
+    FROM Customers
+    ORDER BY CustomerID"
+2025-12-03 04:19:47.224132,SELECT,True,manager,Atelier,dbo,Customers,"SELECT TOP 5
+        CustomerID,
+        CustomerName,
+        Phone,
+        Address
+    FROM Customers
+    ORDER BY CustomerID"
+2025-12-03 04:19:46.318727,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 5
+        CustomerID,
+        CustomerName,
+        Phone,
+        Address
+    FROM Customers
+    ORDER BY CustomerID"
+2025-12-03 04:19:39.125489,SELECT,True,cashier,Atelier,dbo,Customers,"SELECT TOP 10
+            CustomerID,
+            CustomerName,
+            Phone,
+            Address
+        FROM Customers
+        ORDER BY CustomerID"
+2025-12-03 04:19:39.118977,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+            CustomerID,
+            CustomerName,
+            Phone,
+            Address
+        FROM Customers
+        ORDER BY CustomerID"
+2025-12-03 04:19:34.480183,SELECT,True,cashier,Atelier,dbo,Customers,"SELECT TOP 10
+            CustomerID,
+            CustomerName,
+            Phone,
+            Address
+        FROM Customers
+        ORDER BY CustomerID"
+2025-12-03 04:19:31.393601,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10
+            CustomerID,
+            CustomerName,
+            Phone,
+            Address
+        FROM Customers
+        ORDER BY CustomerID"
+2025-12-03 04:05:22.101056,SELECT,True,cashier,Atelier,dbo,Customers,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) AS TotalCost,
+        ISNULL(SUM(cr.Amount), 0) AS TotalPaid,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) AS Balance
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    LEFT JOIN CashRegister cr ON o.OrderID = cr.OrderID
+    GROUP BY o.OrderID, c.CustomerName, oc.BaseCost, oc.FabricCost, oc.ComplicationCost, oc.UrgencyCost
+    HAVING ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) > 0
+    ORDER BY o.OrderID DESC"
+2025-12-03 04:05:22.100059,SELECT,True,cashier,Atelier,dbo,CashRegister,"SELECT TOP 10
+        o.OrderID,
+        c.CustomerName,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) AS TotalCost,
+        ISNULL(SUM(cr.Amount), 0) AS TotalPaid,
+        ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) AS Balance
+    FROM Orders o
+    JOIN Customers c ON o.CustomerID = c.CustomerID
+    LEFT JOIN OrderCosts oc ON o.OrderID = oc.OrderID
+    LEFT JOIN CashRegister cr ON o.OrderID = cr.OrderID
+    GROUP BY o.OrderID, c.CustomerName, oc.BaseCost, oc.FabricCost, oc.ComplicationCost, oc.UrgencyCost
+    HAVING ISNULL(oc.BaseCost + oc.FabricCost + oc.ComplicationCost + oc.UrgencyCost, 0) - ISNULL(SUM(cr.Amount), 0) > 0
+    ORDER BY o.OrderID DESC"
+2025-12-03 03:28:17.175235,SELECT,True,cashier,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:27:48.175691,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:27:48.159946,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:26:52.727572,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:26:52.727572,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:25:02.574241,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:25:02.570454,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:24:43.616078,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address 
+    FROM Customers"
+2025-12-03 03:24:33.403985,UPDATE,True,atelier_admin,Atelier,dbo,Customers,"UPDATE Customers 
+    SET Address = 'Тестовый адрес ' + CAST(NEWID() AS NVARCHAR(36))
+    WHERE CustomerID = 1"
+2025-12-03 03:24:33.403985,SELECT,True,atelier_admin,Atelier,dbo,Customers,"UPDATE Customers 
+    SET Address = 'Тестовый адрес ' + CAST(NEWID() AS NVARCHAR(36))
+    WHERE CustomerID = 1"
+2025-12-03 03:23:25.767442,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:23:25.752858,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:20:51.005628,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:20:51.005268,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:19:58.990613,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:19:58.983813,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:18:44.015686,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
+2025-12-03 03:18:44.008534,SELECT,True,atelier_admin,Atelier,dbo,Customers,"SELECT TOP 10 CustomerID, CustomerName, Phone, Address FROM Customers"
