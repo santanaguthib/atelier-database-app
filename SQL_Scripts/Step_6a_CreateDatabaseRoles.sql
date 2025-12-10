@@ -36,9 +36,15 @@ GO
 
 -- Grant UNMASK permission to see real data (not masked)
 GRANT UNMASK TO [AtelierManager];
+
+-- Grant EXECUTE on all stored procedures and functions
+GRANT EXECUTE ON SCHEMA::dbo TO [AtelierManager];
 GO
 
 PRINT '  • Permissions: db_datareader, db_datawriter, UNMASK';
+PRINT '  • Can EXECUTE all stored procedures and functions';
+PRINT '  • Can use all views (via db_datareader)';
+PRINT '  • Triggers work automatically on DML operations';
 PRINT '';
 
 -- ======================================================================
@@ -72,9 +78,19 @@ GRANT SELECT ON [dbo].[Tailors] TO [AtelierTailor];
 GRANT SELECT ON [dbo].[Fabrics] TO [AtelierTailor];
 GRANT SELECT ON [dbo].[Services] TO [AtelierTailor];
 GRANT SELECT ON [dbo].[OrderStatuses] TO [AtelierTailor];
+
+-- Grant EXECUTE on stored procedures for order management
+GRANT EXECUTE ON [dbo].[sp_CreateOrder] TO [AtelierTailor];
+GRANT EXECUTE ON [dbo].[sp_CreateFullOrder] TO [AtelierTailor];
+GRANT EXECUTE ON [dbo].[sp_CalculateOrderCost] TO [AtelierTailor];
+GRANT EXECUTE ON [dbo].[sp_FindAvailableTailors] TO [AtelierTailor];
+GRANT EXECUTE ON [dbo].[sp_TailorReport] TO [AtelierTailor];
 GO
 
 PRINT '  • Permissions: db_datareader + INSERT/UPDATE/DELETE on Orders, OrderCosts, OrderComplications, OrderFabrics';
+PRINT '  • EXECUTE permissions: sp_CreateOrder, sp_CreateFullOrder, sp_CalculateOrderCost, sp_FindAvailableTailors, sp_TailorReport';
+PRINT '  • Can use all views and functions (via db_datareader)';
+PRINT '  • Triggers work automatically on Orders/OrderCosts/OrderComplications/OrderFabrics operations';
 PRINT '';
 
 -- ======================================================================
@@ -104,9 +120,18 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON [dbo].[CashRegister] TO [AtelierCashier]
 GRANT SELECT ON [dbo].[Orders] TO [AtelierCashier];
 GRANT SELECT ON [dbo].[Customers] TO [AtelierCashier];
 GRANT SELECT ON [dbo].[OrderStatuses] TO [AtelierCashier];
+
+-- Grant EXECUTE on stored procedures for payment processing
+GRANT EXECUTE ON [dbo].[sp_AddPayment] TO [AtelierCashier];
+GRANT EXECUTE ON [dbo].[sp_TailorReport] TO [AtelierCashier];
+GRANT EXECUTE ON [dbo].[sp_FindAvailableTailors] TO [AtelierCashier];
+-- Note: Read-only procedures (that only SELECT) are allowed via db_datareader
 GO
 
 PRINT '  • Permissions: db_datareader + INSERT/UPDATE/DELETE on CashRegister';
+PRINT '  • EXECUTE permissions: sp_AddPayment, sp_TailorReport, sp_FindAvailableTailors';
+PRINT '  • Can use all views and functions (via db_datareader)';
+PRINT '  • Triggers work automatically on CashRegister operations';
 PRINT '';
 
 -- ======================================================================
